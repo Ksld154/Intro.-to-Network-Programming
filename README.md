@@ -1,2 +1,4 @@
 # Intro.-to-Network-Programming
-Introduction to Network Programming - 2018 Fall
+Course: Introduction to Network Programming
+
+Semester: 2018 Fall
