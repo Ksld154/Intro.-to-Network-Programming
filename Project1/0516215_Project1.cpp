@@ -16,14 +16,17 @@ bool cmp(const customer A, const customer B){
     return A.arrive < B.arrive;
 }
 
-int main(int argc, char const *argv[]){
+int main(int argc, char *argv[]){
+    FILE *fp = fopen(argv[1], "r");
     int g, customer_num;
-    cin >> g >> customer_num;
+    //cin >> g >> customer_num;
+    fscanf(fp, "%d%d", &g, &customer_num);
     const int G = g;
     struct customer cus[customer_num];
 
     for(int i = 0; i < customer_num; i++){
-        cin >> cus[i].arrive >> cus[i].continuous >> cus[i].rest >> cus[i].N;
+        //cin >> cus[i].arrive >> cus[i].continuous >> cus[i].rest >> cus[i].N;
+        fscanf(fp, "%d%d%d%d", &cus[i].arrive, &cus[i].continuous, &cus[i].rest, &cus[i].N);
         cus[i].id = i+1;
         cus[i].inqueue = 0;
     }
