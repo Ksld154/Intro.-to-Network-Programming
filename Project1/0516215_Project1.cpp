@@ -8,6 +8,7 @@ struct customer{
     int continuous;
     int rest;
     int N;
+    int id;
 };
 
 bool cmp(const customer A, const customer B){
@@ -25,40 +26,75 @@ int main(int argc, char const *argv[]){
 
     for(int i = 0; i < customer_num; i++){
         cin >> cus[i].arrive >> cus[i].continuous >> cus[i].rest >> cus[i].N;
+        cus[i].id = i+1;
     }
     sort(cus, cus+customer_num, cmp);
     
+    bool use = 0;
     int finish_cnt = 0;
     int t = 0;
     t = cus[0].arrive;
     
-    while(finish_cnt <= customer_num){
+    while(finish_cnt < customer_num){
         
-        for(int i = 0; i < customer_num; i++){
-            int time_fin = t;
-            if(cus[i].N <= cus[i].continuous){
-                cout << t+cus[i].N << " " << i << " " << "finish playing YES" << endl;
-                g = G;
-            }
-            else if(g <= cus[i].continuous){
-                cout << t+g << " " << i << " " << "finish playing YES" << endl;
-                g = G;
-            }
-            else{
-                g -= cus[i].continuous;
-                cus[i].N -= cus[i].continuous;
-                //time_fin += cus[i].continuous;
-                cus[i].arrive += cus[i].continuous;
+        /*
+        for(int tt = 0; ; tt++){
+
+        }
+        */
+
+        //t = cus[finish_cnt].arrive;   //wrong!!
+
+        if(t < cus[finish_cnt].arrive){
+            t = cus[finish_cnt].arrive;
+            g = G;
+        }
+
+        cout << t << " " << cus[finish_cnt].id << " " << "start playing" << endl;
+        int time_fin = t + cus[finish_cnt].continuous;
+
+        for(int j = finish_cnt+1; j < customer_num; j++){
+            if(cus[j].arrive < time_fin){
+                cout << cus[j].arrive << " " << cus[j].id << " " << "wait in line" << endl;
             }
         }
-        sort(cus, cus+customer_num, cmp);
+
+
+        
+        if(cus[finish_cnt].N <= cus[finish_cnt].continuous){
+            t = t + cus[finish_cnt].N;
+            cout << t << " " << cus[finish_cnt].id << " " << "finish playing YES" << endl;
+            finish_cnt++;
+            g = G;
+        }
+        else if(g <= cus[finish_cnt].continuous){
+            t = t + g;
+            cout << t << " " << cus[finish_cnt].id << " " << "finish playing YES" << endl;
+            finish_cnt++;
+            g = G;
+        }
+        else{
+            g -= cus[finish_cnt].continuous;
+            cus[finish_cnt].N -= cus[finish_cnt].continuous;
+            cus[finish_cnt].arrive = time_fin + cus[finish_cnt].rest;
+            t = t + cus[finish_cnt].continuous;
+            cout << t << " " << cus[finish_cnt].id << " " << "finish playing NO" << endl; 
+        }
+                    
+        sort(cus+finish_cnt, cus+customer_num, cmp);
+
+        for(int i = finish_cnt; i < customer_num; i++){
+            //cout << cus[i].arrive << endl;
+        }
+
+
+        // deal with t!!
+        // waiting
+        //非連續operation G要回復!!
     }
     
-
-
-
-    cout << g+1 << endl;
-    cout << argc << endl;
+    //cout << g+1 << endl;
+    //cout << argc << endl;
     return 0;
 }
 
