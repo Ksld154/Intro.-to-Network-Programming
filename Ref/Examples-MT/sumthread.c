@@ -12,13 +12,15 @@ struct  thread_infor {
         char    *argv_string;
 };
 
-main(int argc, char *argv[]) {
+main(int argc, char *argv[]) {  
         int     i;
         pthread_t       tid[10];
         pthread_attr_t  attr[10];
         struct  thread_infor    t_infor[10];
+        //printf("%d\n", argc);
         for (i=0; i<argc-1; i++) {
                 pthread_attr_init(&attr[i]);
+                //printf("%d\n", i);
                 t_infor[i].index = i;
                 t_infor[i].argv_string = argv[i+1];
                 pthread_create(&tid[i], &attr[i], runner, &t_infor[i] );
