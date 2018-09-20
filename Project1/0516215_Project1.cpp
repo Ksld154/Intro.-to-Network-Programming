@@ -20,18 +20,18 @@ struct CompareArrival{
 };
 
 int main(int argc, char *argv[]){
-    //FILE *fp = fopen(argv[1], "r");
+    FILE *fp = fopen(argv[1], "r");
     int g, customer_num;
-    //fscanf(fp, "%d%d", &g, &customer_num);
-    cin >> g >> customer_num;
+    fscanf(fp, "%d%d", &g, &customer_num);
+    //cin >> g >> customer_num;
 
     struct customer cus[customer_num];
     priority_queue<customer, vector<customer>, CompareArrival> pq;
 
     /* Read input from files */
     for(int i = 0; i < customer_num; i++){ 
-        //fscanf(fp, "%d%d%d%d", &cus[i].arrive, &cus[i].continuous, &cus[i].rest, &cus[i].N);
-        cin >> cus[i].arrive >> cus[i].continuous >> cus[i].rest >> cus[i].N;
+        fscanf(fp, "%d%d%d%d", &cus[i].arrive, &cus[i].continuous, &cus[i].rest, &cus[i].N);
+        //cin >> cus[i].arrive >> cus[i].continuous >> cus[i].rest >> cus[i].N;
         cus[i].id = i;
         cus[i].round_cnt = 0;
         pq.push(cus[i]);
