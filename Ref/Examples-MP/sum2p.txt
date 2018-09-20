@@ -1,0 +1,41 @@
+#include        <stdlib.h>
+#include        <stdio.h>
+#include        <sys/types.h>
+#include        <unistd.h>
+#include        <sys/wait.h>
+
+int     sum;
+FILE    *shared;
+
+main() {
+        int     i, pid, csum;
+
+        sum = 0;
+        shared = fopen("comm", "w+");
+        pid = fork();
+        if (pid < 0) exit(-1);
+        if (pid == 0) {   // the child process
+                for (i=1; i<=10; i++) {
+                        printf("The value of i in child process %d is %d\n", (int)getpid(), i);
+                        fflush(stdout);
+                        sum += i;
+                };
+                printf("The sum in child process %d is %d\n", (int)getpid(), sum);
+                fprintf(shared, "%d", sum);
+                exit (0);
+        } else {          // the parent process
+                for (i=11; i<=20; i++) {
+                        printf("The value of i in parent process %d is %d\n", (int)getpid(), i);
+                        fflush(stdout);
+                        sum += i;
+                };
+                printf("The sum in parent process %d is %d\n", (int)getpid(), sum);
+                wait(NULL);
+                rewind(shared);
+                fscanf(shared, "%d", &csum);
+                printf("The value read from shared file is %d\n", csum);
+                sum = sum + csum;
+                printf("The value of combined sum is %d\n", sum);
+        };
+        exit(0);
+}

@@ -1,0 +1,39 @@
+(linux1:~/np/concurrency) smyuan% ./sumt 10 20 30
+The value of i in child thread 139695058528528 is 1
+The value of i in child thread 139694991415568 is 11
+The value of i in child thread 139694924302608 is 21
+The value of i in child thread 139695058528528 is 2
+The value of i in child thread 139694991415568 is 12
+The value of i in child thread 139694924302608 is 22
+The value of i in child thread 139695058528528 is 3
+The value of i in child thread 139694991415568 is 13
+The value of i in child thread 139694924302608 is 23
+The value of i in child thread 139695058528528 is 4
+The value of i in child thread 139694991415568 is 14
+The value of i in child thread 139694924302608 is 24
+The value of i in child thread 139695058528528 is 5
+The value of i in child thread 139694991415568 is 15
+The value of i in child thread 139694924302608 is 25
+The value of i in child thread 139695058528528 is 6
+The value of i in child thread 139694991415568 is 16
+The value of i in child thread 139694924302608 is 26
+The value of i in child thread 139695058528528 is 7
+The value of i in child thread 139694991415568 is 17
+The value of i in child thread 139694924302608 is 27
+The value of i in child thread 139695058528528 is 8
+The value of i in child thread 139694991415568 is 18
+The value of i in child thread 139694924302608 is 28
+The value of i in child thread 139695058528528 is 9
+The value of i in child thread 139694991415568 is 19
+The value of i in child thread 139694924302608 is 29
+The value of i in child thread 139695058528528 is 10
+The value of i in child thread 139694991415568 is 20
+The value of i in child thread 139694924302608 is 30
+The sum from 1 to 10 in thread 139695058528528 is 55
+The sum from 11 to 20 in thread 139694991415568 is 155
+The sum from 21 to 30 in thread 139694924302608 is 255
+sum in child thread 139695058528528 is 55
+sum in child thread 139694991415568 is 155
+sum in child thread 139694924302608 is 255
+total in main thread 139695066363632 is 465
+(linux1:~/np/concurrency) smyuan%
