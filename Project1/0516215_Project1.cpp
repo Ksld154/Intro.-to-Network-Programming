@@ -11,7 +11,6 @@ struct customer{
     int N;
     int id;
     int round_cnt;
-    bool inqueue;
 };
 
 struct CompareArrival{
@@ -35,33 +34,23 @@ int main(int argc, char *argv[]){
         cin >> cus[i].arrive >> cus[i].continuous >> cus[i].rest >> cus[i].N;
         cus[i].id = i;
         cus[i].round_cnt = 0;
-        cus[i].inqueue = 1;
         pq.push(cus[i]);
     }
     
     //sort(cus, cus+customer_num, cmp);  //sort by customer's arrival time 
     
     bool in_use = 0;
+    int g_cnt = 0;
     int finish_cnt = 0;
     int t = cus[0].arrive;
     int playing_id = 0;
-    int g_cnt = 0;
     
     while(finish_cnt < customer_num){
-        /*
-        if(in_use){
-            g_cnt++;
-            cus[playing_id].round_cnt++;            
-        }
-        else
-            g_cnt = 0;
-        */
-
         /*Using machine*/
         if(in_use){
             g_cnt++;
             cus[playing_id].round_cnt++;
-            //cout << cus[playing_id].round_cnt << endl;
+
             if(cus[playing_id].N == cus[playing_id].round_cnt || g == g_cnt){      //Finish playing, GET prize
                 cout << t << " " << playing_id+1 << " " << "finish playing YES" << endl;
                 finish_cnt++;
@@ -79,6 +68,7 @@ int main(int argc, char *argv[]){
         }else{
             g_cnt = 0;
         }
+
         /*search waiting queue*/
         for(int i = 0; i < customer_num; i++){
             if(cus[i].arrive == t){
@@ -90,7 +80,7 @@ int main(int argc, char *argv[]){
         }
 
         /*Start Playing*/
-        if(!in_use && !pq.empty() && pq.top().arrive <= t){  //check whether someboy is waiting and the machine isn't occupied by others
+        if(!in_use && !pq.empty() && pq.top().arrive <= t){  //check whether somebody is waiting and the machine is idle
             playing_id = pq.top().id;
             pq.pop();
             in_use = 1;
