@@ -65,32 +65,36 @@ int main(int argc, char *argv[]){
             if(cus[playing_id].N == cus[playing_id].round_cnt || g == g_cnt){      //Finish playing, GET prize
                 cout << t << " " << playing_id+1 << " " << "finish playing YES" << endl;
                 finish_cnt++;
+                g_cnt = 0;
                 in_use = 0;
+                playing_id = -1;
             }else if(cus[playing_id].round_cnt % cus[playing_id].continuous == 0){  //Finish playing, did NOT get prize
                 cout << t << " " << playing_id+1 << " " << "finish playing NO" << endl; 
-                cus[playing_id].arrive = t + cus[finish_cnt].rest;   //update the customer's new arrival time
+                cus[playing_id].arrive = t + cus[playing_id].rest;   //update the customer's new arrival time
                 pq.push(cus[playing_id]);
-                in_use = 0; 
+                in_use = 0;
+                playing_id = -1; 
             }  
-
 
         }else{
             g_cnt = 0;
         }
+        /*search waiting queue*/
+        for(int i = 0; i < customer_num; i++){
+            if(cus[i].arrive == t){
+                if(in_use && i != playing_id)         //the machine is BUSY, so others must to wait
+                    cout << cus[i].arrive << " " << i+1 << " " << "wait in line" << endl;
+                else if(!in_use && i != pq.top().id)  //the machine is IDLE, but there are multiple users that can use it immediatly,
+                    cout << cus[i].arrive << " " << i+1 << " " << "wait in line" << endl; // only the man who is the first one in the queue can use it, others must to wait 
+            }
+        }
 
         /*Start Playing*/
-        if(!pq.empty() && !in_use && t >= pq.top().arrive){  //check whether someboy is waiting and the machine isn't occupied by others
+        if(!in_use && !pq.empty() && pq.top().arrive <= t){  //check whether someboy is waiting and the machine isn't occupied by others
             playing_id = pq.top().id;
             pq.pop();
             in_use = 1;
             cout << t << " " << playing_id+1 << " " << "start playing" << endl;
-        }
-
-        /*search waiting queue*/
-        for(int i = 0; i < customer_num; i++){
-            if(cus[i].arrive == t && in_use && i != playing_id){
-                cout << cus[i].arrive << " " << i+1 << " " << "wait in line" << endl;
-            }
         }
         t++;
     }
