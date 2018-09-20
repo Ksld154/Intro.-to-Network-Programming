@@ -1,6 +1,7 @@
 #include<iostream>
 #include<cstdio>
 #include<algorithm>
+#include<queue>
 using namespace std;
 
 struct customer{
@@ -9,79 +10,89 @@ struct customer{
     int rest;
     int N;
     int id;
+    int round_cnt;
     bool inqueue;
 };
 
-bool cmp(const customer A, const customer B){
-    return A.arrive < B.arrive;
-}
+struct CompareArrival{
+    bool operator()(const customer l, const customer r){
+        return l.arrive > r.arrive;
+    }
+};
 
 int main(int argc, char *argv[]){
-    FILE *fp = fopen(argv[1], "r");
+    //FILE *fp = fopen(argv[1], "r");
     int g, customer_num;
-    fscanf(fp, "%d%d", &g, &customer_num);
-    const int G = g;
+    //fscanf(fp, "%d%d", &g, &customer_num);
+    cin >> g >> customer_num;
+
     struct customer cus[customer_num];
+    priority_queue<customer, vector<customer>, CompareArrival> pq;
 
     /* Read input from files */
     for(int i = 0; i < customer_num; i++){ 
-        fscanf(fp, "%d%d%d%d", &cus[i].arrive, &cus[i].continuous, &cus[i].rest, &cus[i].N);
-        cus[i].id = i+1;
-        cus[i].inqueue = 0;
+        //fscanf(fp, "%d%d%d%d", &cus[i].arrive, &cus[i].continuous, &cus[i].rest, &cus[i].N);
+        cin >> cus[i].arrive >> cus[i].continuous >> cus[i].rest >> cus[i].N;
+        cus[i].id = i;
+        cus[i].round_cnt = 0;
+        cus[i].inqueue = 1;
+        pq.push(cus[i]);
     }
     
-    sort(cus, cus+customer_num, cmp);  //sort by customer's arrival time 
+    //sort(cus, cus+customer_num, cmp);  //sort by customer's arrival time 
     
-    //bool use = 0;
+    bool in_use = 0;
     int finish_cnt = 0;
     int t = cus[0].arrive;
+    int playing_id = 0;
+    int g_cnt = 0;
     
     while(finish_cnt < customer_num){
-        if(t < cus[finish_cnt].arrive){          //check whether the machine is idle
-            t = cus[finish_cnt].arrive;
-            g = G;
+        /*
+        if(in_use){
+            g_cnt++;
+            cus[playing_id].round_cnt++;            
+        }
+        else
+            g_cnt = 0;
+        */
+
+        /*Using machine*/
+        if(in_use){
+            g_cnt++;
+            cus[playing_id].round_cnt++;
+            //cout << cus[playing_id].round_cnt << endl;
+            if(cus[playing_id].N == cus[playing_id].round_cnt || g == g_cnt){      //Finish playing, GET prize
+                cout << t << " " << playing_id+1 << " " << "finish playing YES" << endl;
+                finish_cnt++;
+                in_use = 0;
+            }else if(cus[playing_id].round_cnt % cus[playing_id].continuous == 0){  //Finish playing, did NOT get prize
+                cout << t << " " << playing_id+1 << " " << "finish playing NO" << endl; 
+                cus[playing_id].arrive = t + cus[finish_cnt].rest;   //update the customer's new arrival time
+                pq.push(cus[playing_id]);
+                in_use = 0; 
+            }  
+
+
+        }else{
+            g_cnt = 0;
         }
 
-        cout << t << " " << cus[finish_cnt].id << " " << "start playing" << endl;
-        int time_fin = t + cus[finish_cnt].continuous;
+        /*Start Playing*/
+        if(!pq.empty() && !in_use && t >= pq.top().arrive){  //check whether someboy is waiting and the machine isn't occupied by others
+            playing_id = pq.top().id;
+            pq.pop();
+            in_use = 1;
+            cout << t << " " << playing_id+1 << " " << "start playing" << endl;
+        }
 
-        for(int j = finish_cnt+1; j < customer_num; j++){    //scan for customer who is waiting to use the machine
-            if(cus[j].arrive < time_fin && !cus[j].inqueue){
-                cout << cus[j].arrive << " " << cus[j].id << " " << "wait in line" << endl;
-                cus[j].inqueue = 1;
+        /*search waiting queue*/
+        for(int i = 0; i < customer_num; i++){
+            if(cus[i].arrive == t && in_use && i != playing_id){
+                cout << cus[i].arrive << " " << i+1 << " " << "wait in line" << endl;
             }
         }
-
-        if(cus[finish_cnt].N <= cus[finish_cnt].continuous){ //get prize
-            t = t + cus[finish_cnt].N;
-            cout << t << " " << cus[finish_cnt].id << " " << "finish playing YES" << endl;
-            finish_cnt++;
-            g = G;
-            cus[finish_cnt].inqueue = 0;
-        }
-        else if(g <= cus[finish_cnt].continuous){ // get prize    
-            t = t + g;
-            cout << t << " " << cus[finish_cnt].id << " " << "finish playing YES" << endl;
-            finish_cnt++;
-            g = G;
-            cus[finish_cnt].inqueue = 0;
-        }
-        else{  //did not get prize
-            g -= cus[finish_cnt].continuous;
-            cus[finish_cnt].N -= cus[finish_cnt].continuous;
-            cus[finish_cnt].arrive = time_fin + cus[finish_cnt].rest;   //update the customer's new arrival time
-            t = t + cus[finish_cnt].continuous;                         //update global time
-            cus[finish_cnt].inqueue = 0;
-            cout << t << " " << cus[finish_cnt].id << " " << "finish playing NO" << endl; 
-        }  
-         
-        sort(cus+finish_cnt, cus+customer_num, cmp);  //sort by customer's arrival time
-        
-        /*
-        for(int j = finish_cnt; j < customer_num; j++){
-            cout << cus[j].id  << endl;
-        }
-        */
+        t++;
     }
     return 0;
 }
