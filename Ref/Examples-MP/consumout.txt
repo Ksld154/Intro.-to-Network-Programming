@@ -1,0 +1,27 @@
+(linux1:~/np/concurrency) smyuan% ./b.out
+The value of i in process 11919 is 1
+The value of i in process 11919 is 2
+The value of i in process 11919 is 3
+The value of i in process 11919 is 4
+The value of i in process 11919 is 5
+The sum in process 11919 is 15
+The value of i in process 11920 is 1
+The value of i in process 11920 is 2
+The value of i in process 11920 is 3
+The value of i in process 11920 is 4
+The value of i in process 11920 is 5
+The sum in process 11920 is 15
+(linux1:~/np/concurrency) smyuan% ./b.out
+The value of i in process 11922 is 1
+The value of i in process 11922 is 2
+The value of i in process 11922 is 3
+The value of i in process 11923 is 1
+The value of i in process 11922 is 4
+The value of i in process 11922 is 5
+The sum in process 11922 is 15
+The value of i in process 11923 is 2
+The value of i in process 11923 is 3
+The value of i in process 11923 is 4
+The value of i in process 11923 is 5
+The sum in process 11923 is 15
+(linux1:~/np/concurrency) smyuan%

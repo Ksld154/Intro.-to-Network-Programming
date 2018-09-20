@@ -1,0 +1,37 @@
+(linux1:~/np/concurrency) smyuan% ./b.out
+The value of i in parent process 12799 is 1
+The value of i in parent process 12799 is 2
+The value of i in child process 12800 is 1
+The value of i in parent process 12799 is 3
+The value of i in parent process 12799 is 4
+The value of i in parent process 12799 is 5
+The value of i in parent process 12799 is 6
+The value of i in parent process 12799 is 7
+The value of i in parent process 12799 is 8
+The value of i in parent process 12799 is 9
+The value of i in parent process 12799 is 10
+The sum in parent process 12799 is 55
+The value of i in child process 12800 is 2
+The value of i in child process 12800 is 3
+The value of i in child process 12800 is 4
+The value of i in child process 12800 is 5
+The sum in child process 12800 is 15
+(linux1:~/np/concurrency) smyuan% ./b.out
+The value of i in parent process 12803 is 1
+The value of i in parent process 12803 is 2
+The value of i in parent process 12803 is 3
+The value of i in parent process 12803 is 4
+The value of i in child process 12804 is 1
+The value of i in parent process 12803 is 5
+The value of i in parent process 12803 is 6
+The value of i in parent process 12803 is 7
+The value of i in parent process 12803 is 8
+The value of i in parent process 12803 is 9
+The value of i in parent process 12803 is 10
+The sum in parent process 12803 is 55
+The value of i in child process 12804 is 2
+The value of i in child process 12804 is 3
+The value of i in child process 12804 is 4
+The value of i in child process 12804 is 5
+The sum in child process 12804 is 15
+(linux1:~/np/concurrency) smyuan%

@@ -1,0 +1,52 @@
+(linux1:~/np/concurrency) smyuan% ./sum2p
+The value of i in parent process 23545 is 11
+The value of i in parent process 23545 is 12
+The value of i in parent process 23545 is 13
+The value of i in parent process 23545 is 14
+The value of i in parent process 23545 is 15
+The value of i in child process 23546 is 1
+The value of i in parent process 23545 is 16
+The value of i in parent process 23545 is 17
+The value of i in parent process 23545 is 18
+The value of i in child process 23546 is 2
+The value of i in parent process 23545 is 19
+The value of i in child process 23546 is 3
+The value of i in parent process 23545 is 20
+The value of i in child process 23546 is 4
+The sum in parent process 23545 is 155
+The value of i in child process 23546 is 5
+The value of i in child process 23546 is 6
+The value of i in child process 23546 is 7
+The value of i in child process 23546 is 8
+The value of i in child process 23546 is 9
+The value of i in child process 23546 is 10
+The sum in child process 23546 is 55
+The value read from shared file is 55
+The value of combined sum is 210
+(linux1:~/np/concurrency) smyuan% 
+(linux1:~/np/concurrency) smyuan% ./sum2p
+The value of i in parent process 23551 is 11
+The value of i in parent process 23551 is 12
+The value of i in parent process 23551 is 13
+The value of i in parent process 23551 is 14
+The value of i in child process 23552 is 1
+The value of i in parent process 23551 is 15
+The value of i in parent process 23551 is 16
+The value of i in parent process 23551 is 17
+The value of i in child process 23552 is 2
+The value of i in parent process 23551 is 18
+The value of i in child process 23552 is 3
+The value of i in parent process 23551 is 19
+The value of i in child process 23552 is 4
+The value of i in parent process 23551 is 20
+The value of i in child process 23552 is 5
+The sum in parent process 23551 is 155
+The value of i in child process 23552 is 6
+The value of i in child process 23552 is 7
+The value of i in child process 23552 is 8
+The value of i in child process 23552 is 9
+The value of i in child process 23552 is 10
+The sum in child process 23552 is 55
+The value read from shared file is 55
+The value of combined sum is 210
+(linux1:~/np/concurrency) smyuan%

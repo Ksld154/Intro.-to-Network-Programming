@@ -1,0 +1,25 @@
+(linux1:~/np/concurrency) smyuan% ./sum2t 10
+The value of i in main thread 140087827425008 is 11
+The value of i in child thread 140087819589904 is 1
+The value of i in main thread 140087827425008 is 12
+The value of i in child thread 140087819589904 is 2
+The value of i in main thread 140087827425008 is 13
+The value of i in child thread 140087819589904 is 3
+The value of i in main thread 140087827425008 is 14
+The value of i in child thread 140087819589904 is 4
+The value of i in main thread 140087827425008 is 15
+The value of i in child thread 140087819589904 is 5
+The value of i in main thread 140087827425008 is 16
+The value of i in child thread 140087819589904 is 6
+The value of i in main thread 140087827425008 is 17
+The value of i in child thread 140087819589904 is 7
+The value of i in main thread 140087827425008 is 18
+The value of i in child thread 140087819589904 is 8
+The value of i in main thread 140087827425008 is 19
+The value of i in child thread 140087819589904 is 9
+The value of i in main thread 140087827425008 is 20
+The value of i in child thread 140087819589904 is 10
+The sum from 1 to 10 in child thread 140087819589904 is 55
+The sum from 11 to 20 in main thread 140087827425008 is 155
+total in main thread 140087827425008 is 210
+(linux1:~/np/concurrency) smyuan%

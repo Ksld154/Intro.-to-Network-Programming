@@ -1,0 +1,19 @@
+#include        <stdlib.h>
+#include        <stdio.h>
+#include        <sys/types.h>
+#include        <unistd.h>
+
+int     sum;
+
+main() {
+        int     i;
+        sum = 0;
+        fork();
+        for (i=1; i<=5; i++) {
+                printf("The value of i in process %d is %d\n", (int)getpid(), i);
+                fflush(stdout);
+                sum += i;
+        };
+        printf("The sum in process %d is %d\n", (int)getpid(), sum);
+        exit(0);
+}
