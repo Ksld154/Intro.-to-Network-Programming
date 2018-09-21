@@ -1,6 +1,8 @@
 #include<cstdio>
 #include<cstdlib>
 #include<pthread.h>
+#include<queue>
+using namespace std;
 
 #define	BUFFER_SIZE		1
 
@@ -39,6 +41,7 @@ typedef	struct{
 } item;
 */
 
+priority_queue<customer, vector<customer>, CompareArrival> pq;
 
 
 int main(int argc, char const *argv[]){
@@ -51,7 +54,6 @@ int main(int argc, char const *argv[]){
     pthread_t       tid[customer_num];
     pthread_attr_t  attr[customer_num];  
     struct customer cus[customer_num];
-    priority_queue<customer, vector<customer>, CompareArrival> pq;
 
     /* Read input from files */
     for(int i = 0; i < customer_num; i++){ 
@@ -144,11 +146,13 @@ int main(int argc, char const *argv[]){
 }
 
 
+/* How to set global_clock??? */
+
 void *producer(void *param){
     struct customer	*cus_info;
     cus_info = (struct customer *) param;
 
-    while (1) { // need to modify the condition
+    while (cus_info->arrive <= global_clock){ // need to modify the condition
 
         //data.value = rand()%1000 + 1;	/* Produce an item */
         (void) pthread_mutex_lock(&shared_stack.mutex);
