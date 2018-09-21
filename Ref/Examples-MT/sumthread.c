@@ -26,6 +26,7 @@ main(int argc, char *argv[]) {
                 pthread_create(&tid[i], &attr[i], runner, &t_infor[i] );
         };
         total = 0;
+        //printf("%d\n", total);
         for (i=0; i<argc-1; i++) {
                 pthread_join(tid[i], NULL);
                 printf("sum in child thread %ld is %d\n", (unsigned long)tid[i], sum[i]);

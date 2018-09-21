@@ -4,6 +4,11 @@
         "iostream": "cpp",
         "*.tcc": "cpp",
         "list": "cpp",
-        "array": "cpp"
+        "array": "cpp",
+        "istream": "cpp",
+        "optional": "cpp",
+        "system_error": "cpp",
+        "type_traits": "cpp",
+        "types.h": "c"
     }
 }

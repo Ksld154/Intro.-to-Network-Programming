@@ -4,13 +4,14 @@
 #include        <sys/types.h>
 #include        <unistd.h>
 #include        <time.h>
-#include	<string.h>
+#include		<string.h>
 
 int     sum, total;
+int 	clk = 0;
 void    *producer (int	producer_id);
 void	*consumer (int 	consumer_id);
 
-#define	BUFFER_SIZE	5
+#define	BUFFER_SIZE		5
 #define	PRODUCER_NUM	3
 #define	CONSUMER_NUM	2
 
@@ -52,6 +53,7 @@ void    *producer (int	producer_id) {
 		while (1) {  
 			data.value = rand()%1000 + 1;	/* Produce an item */
 			(void) pthread_mutex_lock(&shared_stack.mutex);
+			
 			while (shared_stack.top+1 == BUFFER_SIZE){  
 				//  do nothing, no free buffer  
 				(void) pthread_mutex_unlock(&shared_stack.mutex);
@@ -59,7 +61,8 @@ void    *producer (int	producer_id) {
 				sleep(10);  /*  to reduce busy waiting  */
 				(void) pthread_mutex_lock(&shared_stack.mutex);
 			};
-	        	shared_stack.buffer[++shared_stack.top] = data;
+			
+	        shared_stack.buffer[++shared_stack.top] = data;
 			printf("Producer %d insert an item %d to the buffer %d\n", data.prod_id, data.value, shared_stack.top);
 			(void) pthread_mutex_unlock(&shared_stack.mutex);
 			sleep(rand()%10 + 1);
@@ -71,13 +74,15 @@ void	*consumer (int	consumer_id) {
 
 		while (1) {  
 			(void) pthread_mutex_lock(&shared_stack.mutex);
+
 			while (shared_stack.top == -1){  
 				//  do nothing, buffer is empty
 				(void) pthread_mutex_unlock(&shared_stack.mutex);
 				printf("Buffer is empty: Consumer %d is waiting for an item\n", consumer_id);
 				sleep(10);   /*  to reduce busy waiting  */
 				(void) pthread_mutex_lock(&shared_stack.mutex);
-			};			
+			};
+						
 			data = shared_stack.buffer[shared_stack.top--];	/* Consume an item */
 			printf("Consumer %d consumer an item %d:%d from the buffer %d\n", consumer_id, data.prod_id, data.value, shared_stack.top+1);
 			(void) pthread_mutex_unlock(&shared_stack.mutex);

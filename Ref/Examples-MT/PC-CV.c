@@ -10,7 +10,7 @@ int     sum, total;
 void    *producer (int	producer_id);
 void	*consumer (int 	consumer_id);
 
-#define	BUFFER_SIZE	5
+#define	BUFFER_SIZE		5
 #define	PRODUCER_NUM	3
 #define	CONSUMER_NUM	2
 
@@ -56,13 +56,15 @@ void    *producer (int	producer_id) {
 		while (1) {  
 			data.value = rand()%1000 + 1;	/* Produce an item */
 			(void) pthread_mutex_lock(&shared_stack.mutex);
+			
 			while (shared_stack.top+1 == BUFFER_SIZE){  
 				//  do nothing, no free buffer  
 				printf("Buffer is full: Producer %d is waiting for free buffer\n", producer_id);
 				//  wait for the cond_variable notbusy
 				(void) pthread_cond_wait(&shared_stack.notbusy, &shared_stack.mutex);
 			};
-	        	shared_stack.buffer[++shared_stack.top] = data;
+	        
+			shared_stack.buffer[++shared_stack.top] = data;
 			printf("Producer %d insert an item %d to the buffer %d\n", data.prod_id, data.value, shared_stack.top);
 			//   signal all threads blocked for cond_variable notempty   
 			(void) pthread_cond_broadcast(&shared_stack.notempty);
