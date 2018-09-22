@@ -9,6 +9,9 @@
         "optional": "cpp",
         "system_error": "cpp",
         "type_traits": "cpp",
-        "types.h": "c"
+        "types.h": "c",
+        "deque": "cpp",
+        "unordered_map": "cpp",
+        "vector": "cpp"
     }
 }
