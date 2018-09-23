@@ -2,12 +2,13 @@
 #include<cstdlib>
 #include<pthread.h>
 #include<queue>
+#include<iostream>
 using namespace std;
 
 #define	BUFFER_SIZE		1
 
 void    *user(void *arg);
-void    *consumer(int consumer_id);
+//void    *consumer(int consumer_id);
 
 struct customer{
     int arrive;
@@ -31,11 +32,15 @@ struct CompareArrival{
     }
 };
 
+pthread_mutex_t	mutex_clk;
+
+
 bool    in_use = 0;
 int     global_clock = 0;
 int     g_cnt;
 int     G;
 int     playing_id = -1;
+int     finish_cnt = 0;
 priority_queue<customer, vector<customer>, CompareArrival> pq;
 
 
@@ -61,167 +66,126 @@ int main(int argc, char const *argv[]){
     
     shared_stack.top = -1;	/*  empty stack  */
 
-    //bool in_use = 0;
-    //int g_cnt = 0;
-    int finish_cnt = 0;
-    int t = cus[0].arrive;
-    //int playing_id = 0;
-
 
     /*Create Producer threads*/
     for(int i = 0; i < customer_num; i++){
         pthread_attr_init(&attr[i]);		
-        pthread_attr_setdetachstate(&attr[i], PTHREAD_CREATE_DETACHED);
+        //pthread_attr_setdetachstate(&attr[i], PTHREAD_CREATE_DETACHED);
         pthread_mutex_init(&shared_stack.mutex, NULL);
-        pthread_create(&tid[i], &attr[i], user, &cus[i]); 
+        pthread_mutex_init(&mutex_clk, NULL);
+        pthread_create(&tid[i], NULL, user, &cus[i]); 
     }
-    /*
-    while(finish_cnt < customer_num){
-        if(in_use){
-            g_cnt++;
-            cus[playing_id].round_cnt++;
 
-            if(cus[playing_id].N == cus[playing_id].round_cnt || g == g_cnt){      //Finish playing, GET prize
-                cout << t << " " << playing_id+1 << " " << "finish playing YES" << endl;
-                finish_cnt++;
-                g_cnt = 0;
-                in_use = 0;
-                playing_id = -1;
-            }else if(cus[playing_id].round_cnt % cus[playing_id].continuous == 0){  //Finish playing, did NOT get prize
-                cout << t << " " << playing_id+1 << " " << "finish playing NO" << endl; 
-                cus[playing_id].arrive = t + cus[playing_id].rest;   //update the customer's new arrival time
-                pq.push(cus[playing_id]);
-                in_use = 0;
-                playing_id = -1; 
-            }  
-
-        }else{
-            g_cnt = 0;
-        }
-
-        /*search waiting queue*-/
-        for(int i = 0; i < customer_num; i++){
-            if(cus[i].arrive == t){
-                if(in_use && i != playing_id)         //the machine is BUSY, so others must to wait
-                    cout << cus[i].arrive << " " << i+1 << " " << "wait in line" << endl;
-                else if(!in_use && i != pq.top().id)  //the machine is IDLE, but there are multiple users that can use it immediatly,
-                    cout << cus[i].arrive << " " << i+1 << " " << "wait in line" << endl; // only the man who is the first one in the queue can use it, others must to wait 
-            }
-        }
-
-        /*Start Playing*-/
-        if(!in_use && !pq.empty() && pq.top().arrive <= t){  //check whether somebody is waiting and the machine is idle
-            playing_id = pq.top().id;
-            pq.pop();
-            in_use = 1;
-            cout << t << " " << playing_id+1 << " " << "start playing" << endl;
-        }
-        
-        t++;
+    for(int i = 0; i < customer_num; i++){
+        pthread_join(tid[i], NULL); 
     }
-    */
+    
 
-    /*
-    for (int i = 0; i < customer_num; i++) {
-        pthread_join(tid[i], NULL);
-        printf("sum in child thread %ld is %d\n", (unsigned long)tid[i], sum[i]);
-        //total += sum[i];
-    };
-    */
-   /*
-    while (1) {
-        sleep(1000);
-    };
-    */
     return 0;
 }
 
 
 /* How to set global_clock??? */
 
-void *producer(void *arg){
+void *user(void *arg){
     struct customer	*cus_ptr = (struct customer *) arg;
     struct customer cus = *cus_ptr;
+    
+    unsigned long thread_id = pthread_self();
 
-//while(1)
+    printf("Thread:%ld   id:%d\n", thread_id, cus.id+1);
+    printf("t=%d   id:%d  in_use:%d thread in\n", global_clock, cus.id+1, in_use);
 
-    /*Start Playing */
-    if(!in_use && !pq.empty() && pq.top().id == cus.id && cus.arrive <= global_clock){    
-        //global_clock++;
-        pq.pop();
-        pthread_mutex_lock(&shared_stack.mutex);
-        playing_id = cus.id;
-        ++shared_stack.top;
-        in_use = 1;
-        pthread_mutex_unlock(&shared_stack.mutex);
+    while(1){
 
-        cout << global_clock << " " << cus.id << " " << "start playing" << endl;
-    }
-
-    if(!in_use){
-        pthread_mutex_lock(&shared_stack.mutex);
-        g_cnt = 0;
-        global_clock++;
-        pthread_mutex_unlock(&shared_stack.mutex);
-    }
-
-
-    /*Using machine*/
-    while(in_use && playing_id == cus.id){
-        pthread_mutex_lock(&shared_stack.mutex);
-        g_cnt++;
-        cus.round_cnt++;
-
-        if(cus.N == cus.round_cnt || G == g_cnt){      //Finish playing, GET prize
-            cout << global_clock++ << " " << cus.id+1 << " " << "finish playing YES" << endl;
-            finish_cnt++;
+        //Start Playing 
+        if(!in_use && !pq.empty() && pq.top().id == cus.id && cus.arrive <= global_clock){    
+            //global_clock++;
+            pq.pop();
+            //pthread_mutex_lock(&shared_stack.mutex);
+            playing_id = cus.id;
+            ++shared_stack.top;
+            in_use = 1;
+            //pthread_mutex_unlock(&shared_stack.mutex);
+            
+            printf("t=%d   id:%d  Start playing\n", global_clock, cus.id+1);
+        }
+        
+        /*
+        //machine is IDLE
+        if(!in_use){
+            pthread_mutex_lock(&shared_stack.mutex);
             g_cnt = 0;
-            in_use = 0;
-            shared_stack.top--;
+            global_clock++;
+            //printf("t=%d\n", global_clock);
             pthread_mutex_unlock(&shared_stack.mutex);
-            pthread_exit(0);
-        }else if(cus.round_cnt % cus.continuous == 0){  //Finish playing, did NOT get prize
-            cout << global_clock++ << " " << cus.id+1 << " " << "finish playing NO" << endl; 
-            cus.arrive = global_clock + cus.rest;   //update the customer's new arrival time
-            pq.push(cus);
-            in_use = 0; 
-            shared_stack.top--;
-            pthread_mutex_unlock(&shared_stack.mutex);
-        }  
+        }
+        */
+
+
+        //Using machine
+        while(in_use && playing_id == cus.id){
+            
+
+            //pthread_mutex_lock(&shared_stack.mutex);
+            //printf("t=%d\n", global_clock);
+            global_clock++;
+            g_cnt++;
+            cus.round_cnt++;
+            //pthread_mutex_unlock(&shared_stack.mutex);
+
+            if(cus.N == cus.round_cnt || G == g_cnt){      //Finish playing, GET prize
+                //cout << global_clock++ << " " << cus.id+1 << " " << "finish playing YES" << endl;
+                printf("t=%d   id:%d  Finish playing YES\n", global_clock, cus.id+1);
+                finish_cnt++;
+                g_cnt = 0;
+                in_use = 0;
+                shared_stack.top--;
+                //pthread_mutex_unlock(&shared_stack.mutex);
+                pthread_exit(0);
+            }else if(cus.round_cnt % cus.continuous == 0){  //Finish playing, did NOT get prize
+                //cout << global_clock++ << " " << cus.id+1 << " " << "finish playing NO" << endl; 
+                printf("t=%d   id:%d  Finish playing NO\n", global_clock, cus.id+1);
+                cus.arrive = global_clock + cus.rest;   //update the customer's new arrival time
+                pq.push(cus);
+                printf("pq_top = %d\n", pq.top().id);
+                in_use = 0; 
+                shared_stack.top--;
+                //pthread_mutex_unlock(&shared_stack.mutex);
+            }
+        }
+
+        //Wait for machine
+        if(in_use && (playing_id != cus.id) && (cus.arrive <= global_clock)){
+            //pthread_mutex_lock(&shared_stack.mutex);
+            //cout << cus.arrive << " " << global_clock << " " << "wait in line" << endl; // only the man who is the first one in the queue can use it, others must to wait 
+            printf("t=%d   id:%d  Waiting \n", global_clock, cus.id+1);
+
+            
+            //pthread_mutex_unlock(&shared_stack.mutex);
+        }
+
     }
 
-    /*Wait for machine*/
-    if(in_use &&?playing_id != cus.id && cus.arrive == global_clock){
+    /*
         pthread_mutex_lock(&shared_stack.mutex);
-        cout << cus.arrive << " " << global_clock << " " << "wait in line" << endl; // only the man who is the first one in the queue can use it, others must to wait 
         
+        while (shared_stack.top+1 == BUFFER_SIZE){  //  do nothing, no free buffer  
+            pthread_mutex_unlock(&shared_stack.mutex);
+            printf("Buffer is full: Producer %d is waiting for free buffer\n", producer_id);
+            //cout << cus_info->arrive << " " << cus_info->id << " " << "wait in line" << endl;
+
+            sleep(10);  /*  to reduce busy waiting  
+            pthread_mutex_lock(&shared_stack.mutex);
+        };
         
-        
+        shared_stack.buffer[++shared_stack.top] = data;
+        printf("Producer %d insert an item %d to the buffer %d\n", data.prod_id, data.value, shared_stack.top);
+        //cout << cus_info->arrive << " " << cus_info->id << " " << "start playing" << endl;
+
         pthread_mutex_unlock(&shared_stack.mutex);
-    }
-
-
-
-
-/*
-    pthread_mutex_lock(&shared_stack.mutex);
-    
-    while (shared_stack.top+1 == BUFFER_SIZE){  //  do nothing, no free buffer  
-        pthread_mutex_unlock(&shared_stack.mutex);
-        printf("Buffer is full: Producer %d is waiting for free buffer\n", producer_id);
-        //cout << cus_info->arrive << " " << cus_info->id << " " << "wait in line" << endl;
-
-        sleep(10);  /*  to reduce busy waiting  
-        pthread_mutex_lock(&shared_stack.mutex);
-    };
-    
-    shared_stack.buffer[++shared_stack.top] = data;
-    printf("Producer %d insert an item %d to the buffer %d\n", data.prod_id, data.value, shared_stack.top);
-    //cout << cus_info->arrive << " " << cus_info->id << " " << "start playing" << endl;
-
-    pthread_mutex_unlock(&shared_stack.mutex);
-    
-    
-    sleep(rand()%10 + 1);
-*/    
+        
+        
+        sleep(rand()%10 + 1);
+    */    
 }
