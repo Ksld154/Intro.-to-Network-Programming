@@ -70,17 +70,16 @@ int main(int argc, char const *argv[]){
     /*Create Producer threads*/
     for(int i = 0; i < customer_num; i++){
         pthread_attr_init(&attr[i]);		
-        //pthread_attr_setdetachstate(&attr[i], PTHREAD_CREATE_DETACHED);
         pthread_mutex_init(&shared_stack.mutex, NULL);
         pthread_mutex_init(&mutex_clk, NULL);
         pthread_create(&tid[i], NULL, user, &cus[i]); 
     }
 
+
     for(int i = 0; i < customer_num; i++){
         pthread_join(tid[i], NULL); 
     }
     
-
     return 0;
 }
 
@@ -90,7 +89,6 @@ int main(int argc, char const *argv[]){
 void *user(void *arg){
     struct customer	*cus_ptr = (struct customer *) arg;
     struct customer cus = *cus_ptr;
-    
     unsigned long thread_id = pthread_self();
 
     printf("Thread:%ld   id:%d\n", thread_id, cus.id+1);
@@ -100,11 +98,10 @@ void *user(void *arg){
 
         //Start Playing 
         if(!in_use && !pq.empty() && pq.top().id == cus.id && cus.arrive <= global_clock){    
-            //global_clock++;
             pq.pop();
             //pthread_mutex_lock(&shared_stack.mutex);
             playing_id = cus.id;
-            ++shared_stack.top;
+            //++shared_stack.top;
             in_use = 1;
             //pthread_mutex_unlock(&shared_stack.mutex);
             
@@ -126,31 +123,30 @@ void *user(void *arg){
         //Using machine
         while(in_use && playing_id == cus.id){
             
-
             //pthread_mutex_lock(&shared_stack.mutex);
-            //printf("t=%d\n", global_clock);
             global_clock++;
             g_cnt++;
             cus.round_cnt++;
             //pthread_mutex_unlock(&shared_stack.mutex);
 
             if(cus.N == cus.round_cnt || G == g_cnt){      //Finish playing, GET prize
-                //cout << global_clock++ << " " << cus.id+1 << " " << "finish playing YES" << endl;
+
                 printf("t=%d   id:%d  Finish playing YES\n", global_clock, cus.id+1);
                 finish_cnt++;
                 g_cnt = 0;
                 in_use = 0;
-                shared_stack.top--;
+                //shared_stack.top--;
+
                 //pthread_mutex_unlock(&shared_stack.mutex);
                 pthread_exit(0);
             }else if(cus.round_cnt % cus.continuous == 0){  //Finish playing, did NOT get prize
-                //cout << global_clock++ << " " << cus.id+1 << " " << "finish playing NO" << endl; 
+
                 printf("t=%d   id:%d  Finish playing NO\n", global_clock, cus.id+1);
                 cus.arrive = global_clock + cus.rest;   //update the customer's new arrival time
                 pq.push(cus);
                 printf("pq_top = %d\n", pq.top().id);
                 in_use = 0; 
-                shared_stack.top--;
+                //shared_stack.top--;
                 //pthread_mutex_unlock(&shared_stack.mutex);
             }
         }
@@ -158,8 +154,8 @@ void *user(void *arg){
         //Wait for machine
         if(in_use && (playing_id != cus.id) && (cus.arrive <= global_clock)){
             //pthread_mutex_lock(&shared_stack.mutex);
-            //cout << cus.arrive << " " << global_clock << " " << "wait in line" << endl; // only the man who is the first one in the queue can use it, others must to wait 
-            printf("t=%d   id:%d  Waiting \n", global_clock, cus.id+1);
+            
+            printf("t=%d   id:%d  Waiting \n", cus.arrive, cus.id+1);
 
             
             //pthread_mutex_unlock(&shared_stack.mutex);
