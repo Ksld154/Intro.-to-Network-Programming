@@ -160,7 +160,7 @@ void *user(void *arg){
         
         //Start playing(BUG)
         //usleep(10000);
-        if(!in_use && !pq.empty() && pq.top().id == cus_info.id && cus_info.arrive <= global_clock){    
+        if(!in_use && !pq.empty() && cus_info.arrive <= global_clock && cus_info.arrive == pq.top().arrive){    
             //pthread_mutex_trylock(&sync_thread.mutex);  //where to put broadcast????
 
         
@@ -174,24 +174,21 @@ void *user(void *arg){
                 cus_info.waiting = 0;
                 printf("t=%2d   id:%d    Start playing\n", global_clock, cus_info.id);
             }
+            /*else{
+                if(cus_info.arrive == global_clock)
+                    printf("t=%2d   id:%d    Waiting \n", cus_info.arrive, cus_info.id);
+            }*/
         }
-
-
-        //Wait for machine(BUG)
-        if(in_use && (playing_id != cus_info.id) && (cus_info.arrive <= global_clock) && !cus_info.waiting){ 
-            printf("t=%2d   id:%d    Waiting \n", cus_info.arrive, cus_info.id);
-            cus_info.waiting = 1;
-
-        }else if(!in_use && cus_info.id != pq.top().id && (cus_info.arrive <= global_clock) && !cus_info.waiting){  //the machine is IDLE, but there are multiple users that can use it immediatly,
-            printf("t=%2d   id:%d    Waiting \n", cus_info.arrive, cus_info.id);
-            // only the man who is the first one in the queue can use it, others must to wait 
-            cus_info.waiting = 1;
-        }
-
-
-
 
         
+        //Wait for machine(BUG)
+        if(in_use && (playing_id != cus_info.id) && (cus_info.arrive == global_clock)){ 
+            printf("t=%2d   id:%d    Waiting \n", cus_info.arrive, cus_info.id);
+        }
+
+
+
+        /*
         //Early quit (for test)
         if(global_clock == 100){
 			finish_cnt++;
@@ -199,7 +196,7 @@ void *user(void *arg){
 			(void) pthread_mutex_unlock(&switch_thread.mutex);
 			pthread_exit(0);
 		}
-
+    `   */
 
         pthread_mutex_lock(&switch_thread.mutex);
 
