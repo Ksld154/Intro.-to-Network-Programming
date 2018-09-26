@@ -77,71 +77,84 @@ int main(int argc, char const *argv[]){
         if(thread_cnt == customer_num-finish_cnt){
             if(in_use) g_cnt++;  
             else g_cnt = 0;
-            
+            printf("g_cnt:%2d\n", g_cnt);
             global_clock++;
             thread_cnt = 0;
             
-            usleep(20);
-            pthread_cond_broadcast(&thread_switcher.child_thread);
+            //usleep(10000);
+            while(1){
+                if(pthread_mutex_trylock(&thread_switcher.mutex) == 0){
+                    pthread_mutex_unlock(&thread_switcher.mutex);
+                    pthread_cond_broadcast(&thread_switcher.child_thread);
+                    break;
+                }
+            }
+            
+            //pthread_cond_broadcast(&thread_switcher.child_thread);
         }
     }
     return 0;
 }
 
 
-void *user(void *arg){
-    //pthread_mutex_lock(&thread_switcher.mutex);
-    pthread_mutex_lock(&machine.mutex_machine);
+void *user(void *arg){    
     struct customer	*cus_ptr = (struct customer *)arg;
     struct customer cus_info = *cus_ptr;
     
     while(1){
-        int search_start = 0;
-        //int finish = 0;
         
         //Using machine
         if(in_use && playing_id == cus_info.id){
             
-            //pthread_mutex_lock(&machine.mutex_machine);
             cus_info.round_cnt++;
-            //pthread_mutex_unlock(&machine.mutex_machine);
 
             if(cus_info.N == cus_info.round_cnt || G == g_cnt){      //Finish playing, GET prize
 
                 printf("t=%2d   id:%d    Finish playing YES\n", global_clock, cus_info.id);
+                g_cnt = 0;
                 finish_cnt++;
                 in_use = 0;
-                search_start = 1;
-                //pthread_mutex_unlock(&shared_stack.mutex);
+                pthread_mutex_unlock(&machine.mutex_machine);
                 pthread_exit(0);
             }else if(cus_info.round_cnt % cus_info.continuous == 0){  //Finish playing, did NOT get prize
 
                 printf("t=%2d   id:%d    Finish playing NO\n", global_clock, cus_info.id);
                 cus_info.arrive = global_clock + cus_info.rest;   //update the customer's new arrival time
                 pq.push(cus_info);
-                printf("pq_top = %d\n", pq.top().id);
+                //printf("pq_top = %d\n", pq.top().id);
                 in_use = 0;
-                search_start = 1; 
+                pthread_mutex_unlock(&machine.mutex_machine);
             }
         }
 
+        //pthread_mutex_unlock(&machine.mutex_machine);
+        
 
+
+        //pthread_mutex_trylock(&machine.mutex_machine);
         //Start playing(BUG)
+        usleep(10000);
         if(!in_use && !pq.empty() && pq.top().id == cus_info.id && cus_info.arrive <= global_clock){    
-            pq.pop();
-            playing_id = cus_info.id;
-            in_use = 1;
-            printf("t=%2d   id:%d    Start playing\n", global_clock, cus_info.id);
+            
+            int lock_success = -1;
+            lock_success = pthread_mutex_trylock(&machine.mutex_machine);            
+            if(lock_success == 0){
+                pq.pop();
+                playing_id = cus_info.id;
+                in_use = 1;
+                cus_info.waiting = 0;
+                //pthread_mutex_trylock(&machine.mutex_machine);
+                printf("t=%2d   id:%d    Start playing\n", global_clock, cus_info.id);
+            }
         }
-        else if(!in_use && !pq.empty() && pq.top().arrive <= global_clock && search_start == 1){
+        /*else if(!in_use && !pq.empty() && pq.top().arrive <= global_clock && search_start == 1){
             printf("t=%2d   id:%d    Start playing1\n", global_clock, pq.top().id);
             playing_id = pq.top().id;           
             pq.pop();
             in_use = 1;
             search_start = 0;
-        }
+        }*/
         
-
 
         //Wait for machine(BUG)
         if(in_use && (playing_id != cus_info.id) && (cus_info.arrive <= global_clock) && !cus_info.waiting){ 
@@ -159,7 +172,7 @@ void *user(void *arg){
 
         
         //Early quit (for test)
-        if(global_clock == 40){
+        if(global_clock == 100){
 			finish_cnt++;
 			cout << cus_info.id << endl;
 			(void) pthread_mutex_unlock(&thread_switcher.mutex);
@@ -167,10 +180,10 @@ void *user(void *arg){
 		}
 
 
-        pthread_mutex_unlock(&machine.mutex_machine);
+
 
         pthread_mutex_lock(&thread_switcher.mutex);
-        printf("Customer_id:%d   Thread_cnt:%d   Clock=%d\n", cus_info.id, thread_cnt, global_clock);
+        //printf("Customer_id:%d   Thread_cnt:%d   Clock=%d\n", cus_info.id, thread_cnt, global_clock);
         thread_cnt++;
         pthread_cond_wait(&thread_switcher.child_thread, &thread_switcher.mutex);
         pthread_mutex_unlock(&thread_switcher.mutex);
