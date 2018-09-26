@@ -12,6 +12,8 @@
         "types.h": "c",
         "deque": "cpp",
         "unordered_map": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "tuple": "cpp",
+        "utility": "cpp"
     }
 }
