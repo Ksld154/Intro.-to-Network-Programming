@@ -15,6 +15,7 @@ int     in_use = 0;
 int     g_cnt = 0;
 int     finish_cnt = 0;
 int     playing_id = -1;
+int     check_fin = 0;
 
 void    *user(void *arg);
 
@@ -31,11 +32,16 @@ struct customer{
 struct switch1{
     pthread_cond_t  child_thread;
     pthread_mutex_t mutex;
-}thread_switcher;
+}switch_thread;
 
-struct machine1{
-    pthread_mutex_t mutex_machine;
-}machine;
+
+struct sync{
+    pthread_cond_t  other_thread;
+    pthread_mutex_t mutex; 
+}sync_thread;
+
+pthread_mutex_t machine_mutex;
+
 
 struct CompareArrival{
     bool operator()(const customer l, const customer r){
@@ -64,8 +70,11 @@ int main(int argc, char const *argv[]){
         pq.push(cus[i]);
     }
 
-    pthread_cond_init(&thread_switcher.child_thread, NULL);
-    pthread_mutex_init(&thread_switcher.mutex, NULL);
+    pthread_cond_init(&switch_thread.child_thread, NULL);
+    pthread_mutex_init(&switch_thread.mutex, NULL);
+    pthread_cond_init(&sync_thread.other_thread, NULL);
+    pthread_mutex_init(&sync_thread.mutex, NULL);
+    pthread_mutex_init(&machine_mutex, NULL);
 
     /*Create Producer threads*/
     for(int i = 0; i < customer_num; i++){
@@ -74,23 +83,34 @@ int main(int argc, char const *argv[]){
     }
     
     while(finish_cnt < customer_num){
+        if(check_fin == customer_num-finish_cnt){
+            check_fin = 0;
+            while(1){
+                if(pthread_mutex_trylock(&sync_thread.mutex) == 0){
+                    pthread_mutex_unlock(&sync_thread.mutex);
+                    pthread_cond_broadcast(&sync_thread.other_thread);
+                    break;
+                }
+            }        
+        }
+
+
+
         if(thread_cnt == customer_num-finish_cnt){
             if(in_use) g_cnt++;  
             else g_cnt = 0;
-            printf("g_cnt:%2d\n", g_cnt);
+
             global_clock++;
             thread_cnt = 0;
-            
-            //usleep(10000);
             while(1){
-                if(pthread_mutex_trylock(&thread_switcher.mutex) == 0){
-                    pthread_mutex_unlock(&thread_switcher.mutex);
-                    pthread_cond_broadcast(&thread_switcher.child_thread);
+                if(pthread_mutex_trylock(&switch_thread.mutex) == 0){
+                    pthread_mutex_unlock(&switch_thread.mutex);
+                    pthread_cond_broadcast(&switch_thread.child_thread);
                     break;
                 }
             }
-            
-            //pthread_cond_broadcast(&thread_switcher.child_thread);
+            //usleep(10000);
+            //pthread_cond_broadcast(&switch_thread.child_thread);
         }
     }
     return 0;
@@ -102,9 +122,11 @@ void *user(void *arg){
     struct customer cus_info = *cus_ptr;
     
     while(1){
-        
+        pthread_mutex_lock(&sync_thread.mutex);
         //Using machine
         if(in_use && playing_id == cus_info.id){
+            //pthread_cond_wait(&sync_thread.other_thread, &sync_thread.mutex);
+            //pthread_mutex_unlock(&sync_thread.mutex);
             
             cus_info.round_cnt++;
 
@@ -114,7 +136,9 @@ void *user(void *arg){
                 g_cnt = 0;
                 finish_cnt++;
                 in_use = 0;
-                pthread_mutex_unlock(&machine.mutex_machine);
+                //pthread_cond_broadcast(&sync_thread.other_thread);
+                pthread_mutex_unlock(&sync_thread.mutex);
+                pthread_mutex_unlock(&machine_mutex);
                 pthread_exit(0);
             }else if(cus_info.round_cnt % cus_info.continuous == 0){  //Finish playing, did NOT get prize
 
@@ -123,27 +147,30 @@ void *user(void *arg){
                 pq.push(cus_info);
                 //printf("pq_top = %d\n", pq.top().id);
                 in_use = 0;
-                pthread_mutex_unlock(&machine.mutex_machine);
+                //pthread_cond_broadcast(&sync_thread.other_thread);
+                pthread_mutex_unlock(&machine_mutex);
             }
         }
+        //printf("Check_fin:%d\n", check_fin);
+        check_fin++;
 
-        //pthread_mutex_unlock(&machine.mutex_machine);
+        pthread_cond_wait(&sync_thread.other_thread, &sync_thread.mutex);
+        pthread_mutex_unlock(&sync_thread.mutex);
+        //Start playing(BUG)
+        //usleep(10000);
+
+        if(!in_use && !pq.empty() && pq.top().id == cus_info.id && cus_info.arrive <= global_clock){    
+            //pthread_mutex_trylock(&sync_thread.mutex);  //where to put broadcast????
+
         
 
-
-        //pthread_mutex_trylock(&machine.mutex_machine);
-        //Start playing(BUG)
-        usleep(10000);
-        if(!in_use && !pq.empty() && pq.top().id == cus_info.id && cus_info.arrive <= global_clock){    
-            
             int lock_success = -1;
-            lock_success = pthread_mutex_trylock(&machine.mutex_machine);            
-            if(lock_success == 0){
+            lock_success = pthread_mutex_trylock(&machine_mutex);            
+            if(lock_success == 0){             //access machine successfully, then start playing
                 pq.pop();
                 playing_id = cus_info.id;
                 in_use = 1;
                 cus_info.waiting = 0;
-                //pthread_mutex_trylock(&machine.mutex_machine);
                 printf("t=%2d   id:%d    Start playing\n", global_clock, cus_info.id);
             }
         }
@@ -175,17 +202,16 @@ void *user(void *arg){
         if(global_clock == 100){
 			finish_cnt++;
 			cout << cus_info.id << endl;
-			(void) pthread_mutex_unlock(&thread_switcher.mutex);
+			(void) pthread_mutex_unlock(&switch_thread.mutex);
 			pthread_exit(0);
 		}
 
 
+        pthread_mutex_lock(&switch_thread.mutex);
 
-
-        pthread_mutex_lock(&thread_switcher.mutex);
         //printf("Customer_id:%d   Thread_cnt:%d   Clock=%d\n", cus_info.id, thread_cnt, global_clock);
         thread_cnt++;
-        pthread_cond_wait(&thread_switcher.child_thread, &thread_switcher.mutex);
-        pthread_mutex_unlock(&thread_switcher.mutex);
+        pthread_cond_wait(&switch_thread.child_thread, &switch_thread.mutex);
+        pthread_mutex_unlock(&switch_thread.mutex);
     }
 }
