@@ -165,7 +165,7 @@ void *user(void *arg){
                 if(cus_info.arrive == global_clock)
                     printf("t=%2d   id:%d    Waiting \n", cus_info.arrive, cus_info.id);
             }*/
-        }else if()
+        }
         
         //STAGE3: WAIT for machine
         if(m1.in_use && (m1.playing_id != cus_info.id) && (cus_info.arrive == global_clock)){ 
