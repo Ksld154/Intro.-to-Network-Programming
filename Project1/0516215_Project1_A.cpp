@@ -12,17 +12,20 @@ void    *user(void *arg);
 int     global_clock = 0;   // current rounds
 
 //Record user(thread) data
-int     check_fin = 0;      //# of threads that have finished stage1 of a round 
-int     thread_cnt = 0;     //# of threads that have finished all 3 stages of a round
-int     finish_cnt = 0;     //# of people that have get the prizes
+int     thread_stage1_cnt = 0;      //# of threads that have finished stage1 of a round 
+int     thread_stage2_cnt = 0;      //# of threads that have finished stage2 of a round
+int     thread_cnt = 0;             //# of threads that have finished all 3 stages of a round
+int     got_prize = 0;              //# of people that have get the prizes
 
 // Record machine data
 int     G;
 int     g_cnt = 0;
+
 struct grab_machine{
     int     in_use = 0;
     int     playing_id = -1;
-}m1, m2;
+    pthread_mutex_t machine_mutex;
+}m1;
 
 
 struct customer{
@@ -37,14 +40,12 @@ struct customer{
 struct sync{
     pthread_cond_t  other_thread;
     pthread_mutex_t mutex; 
-}sync_thread;
+}sync_thread1, sync_thread2;
 
 struct switch1{
     pthread_cond_t  child_thread;
     pthread_mutex_t mutex;
 }switch_thread;
-
-pthread_mutex_t machine_mutex;
 
 priority_queue<int, vector<int>, greater<int> > pq;
 
@@ -67,9 +68,11 @@ int main(int argc, char const *argv[]){
 
     pthread_cond_init(&switch_thread.child_thread, NULL);
     pthread_mutex_init(&switch_thread.mutex, NULL);
-    pthread_cond_init(&sync_thread.other_thread, NULL);
-    pthread_mutex_init(&sync_thread.mutex, NULL);
-    pthread_mutex_init(&machine_mutex, NULL);
+    pthread_cond_init(&sync_thread1.other_thread, NULL);
+    pthread_mutex_init(&sync_thread1.mutex, NULL);
+    pthread_cond_init(&sync_thread2.other_thread, NULL);
+    pthread_mutex_init(&sync_thread2.mutex, NULL);
+    pthread_mutex_init(&m1.machine_mutex, NULL);
 
     /*Create User threads*/
     for(int i = 0; i < customer_num; i++){		
@@ -77,21 +80,33 @@ int main(int argc, char const *argv[]){
     }
     
     
-    while(finish_cnt < customer_num){
-        /* SYNC: Make sure each thread has done "Finish step (i.e. stage1)" */
-        if(check_fin == customer_num-finish_cnt){
-            check_fin = 0;
+    while(got_prize < customer_num){
+        /* SYNC1: Make sure each thread has done "Finish stage (i.e. stage1)" */
+        if(thread_stage1_cnt == customer_num-got_prize){
+            thread_stage1_cnt = 0;
             while(1){
-                if(pthread_mutex_trylock(&sync_thread.mutex) == 0){
-                    pthread_mutex_unlock(&sync_thread.mutex);
-                    pthread_cond_broadcast(&sync_thread.other_thread);
+                if(pthread_mutex_trylock(&sync_thread1.mutex) == 0){
+                    pthread_mutex_unlock(&sync_thread1.mutex);
+                    pthread_cond_broadcast(&sync_thread1.other_thread);
+                    break;
+                }
+            }        
+        }
+        /* SYNC2: Make sure each thread has done "Start stage (i.e. stage1)" */
+        if(thread_stage2_cnt == customer_num-got_prize){
+            thread_stage2_cnt = 0;
+            while(1){
+                if(pthread_mutex_trylock(&sync_thread2.mutex) == 0){
+                    pthread_mutex_unlock(&sync_thread2.mutex);
+                    pthread_cond_broadcast(&sync_thread2.other_thread);
                     break;
                 }
             }        
         }
 
+
         /* clock: Make sure each thread has done all computation of a round, then move to next round(by broadcast)*/
-        if(thread_cnt == customer_num-finish_cnt){
+        if(thread_cnt == customer_num-got_prize){
             if(m1.in_use) g_cnt++;  
             else g_cnt = 0;
 
@@ -117,7 +132,7 @@ void *user(void *arg){
     struct customer cus_info = *cus_ptr;
     
     while(1){
-        //pthread_mutex_lock(&sync_thread.mutex);
+        //pthread_mutex_lock(&sync_thread1.mutex);
         
         //STAGE1: USING machine
         if(m1.in_use && m1.playing_id == cus_info.id){  
@@ -125,41 +140,41 @@ void *user(void *arg){
 
             //Finish playing, GET prize
             if(cus_info.N == cus_info.round_cnt || G == g_cnt){      
-                printf("t=%2d   id:%d    Finish playing YES\n", global_clock, cus_info.id);
-                finish_cnt++;
+                printf("%2d  %d  Finish playing YES\n", global_clock, cus_info.id);
+                got_prize++;
                 g_cnt = 0;
                 m1.in_use = 0;
-                //pthread_mutex_unlock(&sync_thread.mutex);
-                pthread_mutex_unlock(&machine_mutex);
+                pthread_mutex_unlock(&m1.machine_mutex);
                 pthread_exit(0);
             }
             //Finish playing, did NOT get prize
             else if(cus_info.round_cnt % cus_info.continuous == 0){ 
-                printf("t=%2d   id:%d    Finish playing NO\n", global_clock, cus_info.id);
+                printf("%2d  %d  Finish playing NO\n", global_clock, cus_info.id);
                 cus_info.arrive = global_clock + cus_info.rest;   //update the customer's new arrival time
                 pq.push(cus_info.arrive);
                 m1.in_use = 0;
-                pthread_mutex_unlock(&machine_mutex);
+                pthread_mutex_unlock(&m1.machine_mutex);
             }
         }
-        pthread_mutex_lock(&sync_thread.mutex);
-        check_fin++;   //record the number of users that had finish stage1
-        pthread_cond_wait(&sync_thread.other_thread, &sync_thread.mutex);
-        pthread_mutex_unlock(&sync_thread.mutex);
+
+        pthread_mutex_lock(&sync_thread1.mutex);
+        thread_stage1_cnt++;   //record the number of users that had finish stage1
+        pthread_cond_wait(&sync_thread1.other_thread, &sync_thread1.mutex);
+        pthread_mutex_unlock(&sync_thread1.mutex);
         
         
         //STAGE2: START playing
         //usleep(10000);
         if(!m1.in_use && !pq.empty() && cus_info.arrive <= global_clock && cus_info.arrive == pq.top()){    
-
+            // try to access the machine
             int lock_success = -1;
-            lock_success = pthread_mutex_trylock(&machine_mutex);
+            lock_success = pthread_mutex_trylock(&m1.machine_mutex);
 
             if(lock_success == 0){             //access machine successfully, then Start playing
                 pq.pop();
                 m1.playing_id = cus_info.id;
                 m1.in_use = 1;
-                printf("t=%2d   id:%d    Start playing\n", global_clock, cus_info.id);
+                printf("%2d  %d  Start playing\n", global_clock, cus_info.id);
             }
             /*else{                            //didn't access the machine, so WAIT
                 if(cus_info.arrive == global_clock)
@@ -167,9 +182,15 @@ void *user(void *arg){
             }*/
         }
         
+        pthread_mutex_lock(&sync_thread2.mutex);
+        thread_stage2_cnt++;   //record the number of users that had finish stage1
+        pthread_cond_wait(&sync_thread2.other_thread, &sync_thread2.mutex);
+        pthread_mutex_unlock(&sync_thread2.mutex);
+
+
         //STAGE3: WAIT for machine
         if(m1.in_use && (m1.playing_id != cus_info.id) && (cus_info.arrive == global_clock)){ 
-            printf("t=%2d   id:%d    Waiting \n", cus_info.arrive, cus_info.id);
+            printf("%2d  %d  Waiting \n", cus_info.arrive, cus_info.id);
         }
 
         //printf("Customer_id:%d   Thread_cnt:%d   Clock=%d\n", cus_info.id, thread_cnt, global_clock);
