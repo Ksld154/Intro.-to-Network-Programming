@@ -50,8 +50,10 @@ struct switch1{
 priority_queue<int, vector<int>, greater<int> > pq;
 
 int main(int argc, char const *argv[]){
+    FILE *fp = fopen(argv[1], "r");
     int g, customer_num;
-    scanf("%d%d", &g, &customer_num);
+    fscanf(fp, "%d%d", &g, &customer_num);
+    //scanf("%d%d", &g, &customer_num);
     G = g;
 
     pthread_t       tid[customer_num];
@@ -60,7 +62,8 @@ int main(int argc, char const *argv[]){
 
     /* Read input from files */
     for(int i = 0; i < customer_num; i++){ 
-        scanf("%d%d%d%d", &cus[i].arrive, &cus[i].continuous, &cus[i].rest, &cus[i].N);
+        fscanf(fp, "%d%d%d%d", &cus[i].arrive, &cus[i].continuous, &cus[i].rest, &cus[i].N);
+        //scanf("%d%d%d%d", &cus[i].arrive, &cus[i].continuous, &cus[i].rest, &cus[i].N);
         cus[i].id = i+1;
         cus[i].round_cnt = 0;
         pq.push(cus[i].arrive);
