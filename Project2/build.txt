@@ -1,0 +1,5 @@
+./configure --prefix=/mnt/d/NCTU/Homework/Intro.-to-Network-Programming/Project2
+
+ -I/include/json-c -L/lib/ -ljson-c
+
+g++ 0516215_Project2.cpp  -I/include/json-c -L/lib/ -ljson-c -o 0516215_Project2
