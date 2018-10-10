@@ -61,10 +61,9 @@ void JsonParser(char *receive_msg, char *UserID){
     }
 
 
-
-
-    if(status)
-        printf("status: %d\n", json_object_get_int(status));
+    //if(status)
+        //printf("status: %d\n", json_object_get_int(status));
+    
     if(message)
         printf("%s\n", json_object_get_string(message));
     else if(invite){
@@ -73,18 +72,20 @@ void JsonParser(char *receive_msg, char *UserID){
         // print out each item in invite array(seperate by a space)
         for(int i = 0; i < array_len; i++){
             ArrayItem = json_object_array_get_idx(invite, i);
-            printf("%s ", json_object_get_string(ArrayItem));
+            printf("%s\n", json_object_get_string(ArrayItem));
         }
-        printf("\n");
+        if(array_len == 0)
+            printf("No invitations.\n");
     }
     else if(friends){  //similar as  print invite
         int array_len = json_object_array_length(friends);
         json_object *ArrayItem;
         for(int i = 0; i < array_len; i++){
             ArrayItem = json_object_array_get_idx(friends, i);
-            printf("%s ", json_object_get_string(ArrayItem));
+            printf("%s\n", json_object_get_string(ArrayItem));
         }
-        printf("\n");
+        if(array_len == 0)
+            printf("No friends. QQ\n");
     }
 
     else if(post){
@@ -98,6 +99,8 @@ void JsonParser(char *receive_msg, char *UserID){
             msg_tmp   = json_object_object_get(ArrayItem, "message");
             printf("%s: %s\n", json_object_get_string(id_tmp), json_object_get_string(msg_tmp));
         }
+        if(array_len == 0)
+            printf("No posts.\n");
     }
 
     return;
