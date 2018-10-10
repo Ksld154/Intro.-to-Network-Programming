@@ -13,7 +13,6 @@ using namespace std;
 #define MAX_LINE 200
 
 
-
 struct user_token{
     char    *id;
     char    *token;
@@ -42,13 +41,10 @@ void JsonParser(char *receive_msg, char *UserID){
 
     // If parse fail, object is NULL
     if (!status) {
-        printf("parse failed.");
+        printf("Parse failed.");
         json_object_put(msg_obj);
         return;
     }
-
-
-
 
 
     // UPDATE TOKENLIST:
@@ -59,11 +55,8 @@ void JsonParser(char *receive_msg, char *UserID){
         struct user_token CurrentUser = {user, (char *)token_string};
         TokenList.push_back(CurrentUser);
     }
-
-
-    //if(status)
-        //printf("status: %d\n", json_object_get_int(status));
     
+    // output the corresponding thing to stdout
     if(message)
         printf("%s\n", json_object_get_string(message));
     else if(invite){
@@ -77,7 +70,7 @@ void JsonParser(char *receive_msg, char *UserID){
         if(array_len == 0)
             printf("No invitations.\n");
     }
-    else if(friends){  //similar as  print invite
+    else if(friends){  //similar as print invite
         int array_len = json_object_array_length(friends);
         json_object *ArrayItem;
         for(int i = 0; i < array_len; i++){
@@ -87,9 +80,7 @@ void JsonParser(char *receive_msg, char *UserID){
         if(array_len == 0)
             printf("No friends. QQ\n");
     }
-
     else if(post){
-        //harder than print invite
         int array_len = json_object_array_length(post);
         json_object *ArrayItem, *id_tmp, *msg_tmp;
 
@@ -102,12 +93,8 @@ void JsonParser(char *receive_msg, char *UserID){
         if(array_len == 0)
             printf("No posts.\n");
     }
-
     return;
 }
-
-
-
 
 
 
@@ -119,7 +106,6 @@ int main(int argc, char const *argv[]){
 
     while(1){
 
-        //FILE    *fPtr;
         char    InputBuffer[MAX_LINE];
         char    ReceiveMsg[500];
         char    *arg[MAX_LINE/2];
@@ -131,9 +117,15 @@ int main(int argc, char const *argv[]){
         read(STDIN_FILENO, InputBuffer, MAX_LINE);
         strtok(InputBuffer, "\n");
 
+        if(strcmp(InputBuffer, "exit") == 0){
+            //clear the TokenList???
+            if(TokenList.size() != 0)
+                TokenList.clear();
+            break;
+        } 
 
 
-        /*slice the input command*/
+        // slice the input command
         int arg_cnt = 0;
 		arg[0] = strtok(InputBuffer," ");
         char *tmp = arg[0];
@@ -142,10 +134,9 @@ int main(int argc, char const *argv[]){
 			tmp = arg[i];
             arg_cnt++;
 		}
-
         CommandType = arg[0];
         UserID = arg[1];
-        //printf("Type: %s\n", CommandType);
+
 
         // CHECK COMMAND TYPE: 
         // if the command is not a Login nor a Register command, 
@@ -165,8 +156,6 @@ int main(int argc, char const *argv[]){
             // the user hasn't login, then replace his id with an empty string
             if(foundToken == 0)
                 arg[1] = NULL;
-
-            // do something else?
         }
         
 
@@ -178,29 +167,33 @@ int main(int argc, char const *argv[]){
             if(i != arg_cnt-1)
                 strcat(InputModified, " ");
         }
-        //printf("%s\n", InputModified);
 
+        // copy data from old buf to new one, in order to remove the trailing '\0's.
         int InputModified_len = strlen(InputModified);
         char SendMsg[InputModified_len];
         memset(SendMsg, '\0', sizeof(SendMsg));
-        memcpy(SendMsg, InputModified, InputModified_len); // copy data from old buf to new one
-        //printf("%s\n", SendMsg);
+        memcpy(SendMsg, InputModified, InputModified_len); 
 
-
-
+        /*Create a TCPconnect function??*/
+        
         //create a socket
         int sockfd;
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if(sockfd == -1){
             printf("Fail to create a socket.\n");
         }
-
+        
         //create connection to server
+        char    IPAddr[20];
+        int     Port;
+        strcpy(IPAddr, argv[1]);
+        Port = atoi(argv[2]);
+
         struct sockaddr_in serv;
         memset(&serv, 0, sizeof(serv)); 
         serv.sin_family = PF_INET;
-        serv.sin_addr.s_addr = inet_addr("140.113.207.51");
-        serv.sin_port = htons(8008);
+        serv.sin_addr.s_addr = inet_addr(IPAddr);
+        serv.sin_port = htons(Port);
 
         int con_err = connect(sockfd, (struct sockaddr *)&serv, sizeof(serv));
         if(con_err == -1){
@@ -208,16 +201,13 @@ int main(int argc, char const *argv[]){
         }
         
 
-
-
+        //send and receive socket
         send(sockfd, SendMsg, sizeof(SendMsg), 0);
         recv(sockfd, ReceiveMsg, sizeof(ReceiveMsg), 0);
         close(sockfd);
 
-
         JsonParser(ReceiveMsg, UserID);
-
-
+        
     }
     return 0;
 }
