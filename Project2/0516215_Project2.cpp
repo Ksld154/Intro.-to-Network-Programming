@@ -12,14 +12,12 @@ using namespace std;
 
 #define MAX_LINE 200
 
-
 struct user_token{
     char    *id;
     char    *token;
 };
 
 list<user_token> TokenList;
-
 
 void JsonParser(char *receive_msg, char *UserID){
     json_object *msg_obj, *status;                            // essential column
@@ -29,8 +27,6 @@ void JsonParser(char *receive_msg, char *UserID){
     int     len = strlen(UserID);
     char    *user = new char[len];
     strcpy(user, UserID);
-
-    //printf("msg:\n%s\n", json_object_to_json_string(msg_obj));
 
     status  = json_object_object_get(msg_obj, "status");
     message = json_object_object_get(msg_obj, "message");
@@ -57,8 +53,27 @@ void JsonParser(char *receive_msg, char *UserID){
     }
     
     // output the corresponding thing to stdout
-    if(message)
+    if(message){
         printf("%s\n", json_object_get_string(message));
+
+
+        /*deal with logout, logut has to delete user from TokenList!!!!!*/
+        
+        const char *msg_text = json_object_get_string(message);
+        
+        if(strcmp(msg_text, "Bye!") == 0){
+            list<user_token>::iterator it;
+            for(it = TokenList.begin(); it != TokenList.end(); it++){
+                // if the user's id is in the token list (i.e. the user has already login)
+                if(strcmp(it->id, UserID) == 0){     
+                    TokenList.erase(it);
+                    //printf("remove user's token\n");
+                    break;
+                }    
+            }
+        }
+
+    }
     else if(invite){
         int array_len = json_object_array_length(invite);
         json_object *ArrayItem;
@@ -96,93 +111,106 @@ void JsonParser(char *receive_msg, char *UserID){
     return;
 }
 
-
-
 //server IP:    140.113.207.51
 //server port:  8008
 
 int main(int argc, char const *argv[]){
-    //list<struct user_token> TokenList;
 
     while(1){
 
         char    InputBuffer[MAX_LINE];
+        char    InputModified[MAX_LINE+100];
         char    ReceiveMsg[500];
         char    *arg[MAX_LINE/2];
         char    *CommandType = NULL;
         char    *UserID = NULL;
 
         //read input from stdin
-        memset(InputBuffer, '\0', sizeof(InputBuffer));
+        memset(InputBuffer,   '\0', sizeof(InputBuffer));
+        memset(InputModified, '\0', sizeof(InputModified));
         read(STDIN_FILENO, InputBuffer, MAX_LINE);
         strtok(InputBuffer, "\n");
 
-        if(strcmp(InputBuffer, "exit") == 0){
-            //clear the TokenList???
+        //exit the program when the input command is "exit"
+        if(strcmp(InputBuffer, "exit") == 0){  
             if(TokenList.size() != 0)
                 TokenList.clear();
             break;
         } 
 
-
         // slice the input command
         int arg_cnt = 0;
-		arg[0] = strtok(InputBuffer," ");
-        char *tmp = arg[0];
-		for(int i = 1; tmp != NULL ;i++){
-			arg[i] = strtok(NULL, " ");
-			tmp = arg[i];
-            arg_cnt++;
-		}
-        CommandType = arg[0];
-        UserID = arg[1];
 
-
-        // CHECK COMMAND TYPE: 
-        // if the command is not a Login nor a Register command, 
-        // then replace the "id" argument into the user's "token" 
-        if((strcmp(CommandType, "login") != 0) && (strcmp(CommandType, "register") != 0) ){
-            bool foundToken = 0;
-
-            list<user_token>::iterator it;
-            for(it = TokenList.begin(); it != TokenList.end(); it++){
-                // the user's id is in the token list (i.e. the user has already login)
-                if(strcmp(it->id, arg[1]) == 0){     
-                    foundToken = 1;
-                    arg[1] = it->token;
-                    break;
-                }    
+        if(strstr(InputBuffer, " ") != NULL){
+            
+            arg[0] = strtok(InputBuffer," ");
+            char *tmp = arg[0];
+            for(int i = 1; tmp != NULL; i++){
+                arg[i] = strtok(NULL, " ");
+                tmp = arg[i];
+                arg_cnt++;
             }
-            // the user hasn't login, then replace his id with an empty string
-            if(foundToken == 0)
-                arg[1] = NULL;
+            CommandType = arg[0];
+            UserID = arg[1];
+
+
+            // CHECK COMMAND TYPE: 
+            // if the command is not a Login nor a Register command, 
+            // then replace the "id" argument into the user's "token" 
+
+            if((strcmp(CommandType, "login") != 0) && (strcmp(CommandType, "register") != 0)){
+                bool foundToken = 0;
+                list<user_token>::iterator it;
+                for(it = TokenList.begin(); it != TokenList.end(); it++){
+                    // if the user's id is in the token list (i.e. the user has already login)
+                    if(strcmp(it->id, arg[1]) == 0){     
+                        foundToken = 1;
+                        arg[1] = it->token;
+                        break;
+                    }    
+                }
+                // if the user hasn't login, then replace his id with an empty string
+                if(foundToken == 0)
+                    arg[1] = (char *)"\0";
+            }
+            
+            // concate the modified input (id argument is modified on non-login and non-register commands)
+            // memset(InputModified, '\0', sizeof(InputModified));
+            if(arg_cnt){
+                for(int i = 0; i < arg_cnt; i++){
+                    strcat(InputModified, arg[i]);
+                    if(i != arg_cnt-1)
+                        strcat(InputModified, " ");
+                }
+            }
+            //printf("cat: %s\n", InputModified);
+        }else{
+            strcpy(InputModified, InputBuffer);
+            UserID = (char *)"";
+            //printf("cat: %s\n", InputModified);
         }
         
-
-        // store the modified input (id argument is modified on non-login and non-register commands)
-        char InputModified[300];
-        memset(InputModified, '\0', sizeof(InputModified));
-        for(int i = 0; i < arg_cnt; i++){
-            strcat(InputModified, arg[i]);
-            if(i != arg_cnt-1)
-                strcat(InputModified, " ");
-        }
-
         // copy data from old buf to new one, in order to remove the trailing '\0's.
         int InputModified_len = strlen(InputModified);
         char SendMsg[InputModified_len];
+        //printf("%d %s\n", InputModified_len, InputModified);
+
+
         memset(SendMsg, '\0', sizeof(SendMsg));
-        memcpy(SendMsg, InputModified, InputModified_len); 
+        strcpy(SendMsg, InputModified);
+        //printf("%lu %lu %s\n", sizeof(SendMsg), strlen(SendMsg), SendMsg);
+        //memcpy(SendMsg, InputModified, InputModified_len); 
+
+
 
         /*Create a TCPconnect function??*/
-        
         //create a socket
         int sockfd;
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if(sockfd == -1){
             printf("Fail to create a socket.\n");
         }
-        
+                
         //create connection to server
         char    IPAddr[20];
         int     Port;
@@ -199,8 +227,6 @@ int main(int argc, char const *argv[]){
         if(con_err == -1){
             printf("Connection fail\n");
         }
-        
-
         //send and receive socket
         send(sockfd, SendMsg, sizeof(SendMsg), 0);
         recv(sockfd, ReceiveMsg, sizeof(ReceiveMsg), 0);
