@@ -3,3 +3,6 @@
  -I/include/json-c -L/lib/ -ljson-c
 
 g++ 0516215_Project2.cpp  -I/include/json-c -L/lib/ -ljson-c -o 0516215_Project2
+
+
+./0516215_Project2 140.113.207.51 8008

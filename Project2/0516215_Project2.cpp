@@ -79,6 +79,7 @@ void JsonParser(char *receive_msg, char *UserID, char *CommandType){
     // then update the token list 
     if(token){
         const char *token_string = json_object_get_string(token);
+        //printf("token:%s\n", token_string);
         struct user_token CurrentUser = {user, (char *)token_string};
         TokenList.push_back(CurrentUser);
     }
@@ -93,7 +94,8 @@ void JsonParser(char *receive_msg, char *UserID, char *CommandType){
          * 2. DELETE USER: Also need to remove user from user list. Otherwise when the id is RE-Registered,
          *                 it will also cause the similiar token-duplicate problem. */
         const char *msg_text = json_object_get_string(message);
-        if( (strcmp(msg_text, "Bye!") == 0) || (strcmp(msg_text, "Success!") == 0 && strcmp(Command, "delete") == 0) ){
+        if( ((strcmp(Command, "logout") == 0) || (strcmp(Command, "delete") == 0)) && (json_object_get_int(status)== 0)){
+            //cout <<"in" << endl;
             list<user_token>::iterator it;
             for(it = TokenList.begin(); it != TokenList.end(); it++){
                 // if the user's id is in the token list (i.e. the user has already login), then remove his token.
@@ -237,6 +239,7 @@ int main(int argc, char const *argv[]){
         const char *host   = argv[2];
         int sockfd = TCPconnect(IPAddr, host);  
 
+        //printf("%s\n", SendMsg);
         //send and receive socket
         send(sockfd, SendMsg, sizeof(SendMsg), 0);
         recv(sockfd, ReceiveMsg, sizeof(ReceiveMsg), 0);
