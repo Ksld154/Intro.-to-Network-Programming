@@ -32,6 +32,7 @@ class Client(object):
                         resp = s.recv(4096).decode()
                         self.__show_result(json.loads(resp), cmd)
                 except Exception as e:
+                    print("a")
                     print(e, file=sys.stderr)
 
     def __show_result(self, resp, cmd=None):
