@@ -46,8 +46,6 @@ class User(SQLiteModel):
             #(1) do query
             query = User.select(User.id).where( (User.username == account) & (User.password == password) )
             if len(query) == 1:
-                print("Login success!!\n\n")
-                print(query[0])
                 
                 #print("%s %s" %(query[0].username, query[0].password))
                 
@@ -57,7 +55,7 @@ class User(SQLiteModel):
                 #(3) then update token list
 
                 
-                TokenList.create(user_id=query[0], token=token)
+                TokenList_3.create(user_id=query[0], token=token)
                 
                 
                 
@@ -80,15 +78,15 @@ class User(SQLiteModel):
         pass
 
 
-class TokenList(SQLiteModel):
+class TokenList_3(SQLiteModel):
     #username = pw.CharField(unique=True)
-    user_id = pw.ForeignKeyField(User, on_update='CASCADE', on_delete='CASCADE')
+    user_id = pw.IntegerField()
     token = pw.CharField()
 
     @classmethod
     def Logout_User(self, token):
         try:
-            query = TokenList.delete().where(TokenList.token == token)
+            query = TokenList_3.delete().where(TokenList_3.token == token)
             query.execute()
 
             json_file = json.dumps({'status':0, 'message': 'Bye!'})
@@ -103,48 +101,65 @@ class TokenList(SQLiteModel):
 
 
 
-class Invite(SQLiteModel):
-    from_id = pw.ForeignKeyField(User, on_update='CASCADE', on_delete='CASCADE')
-    to_id   = pw.ForeignKeyField(User, on_update='CASCADE', on_delete='CASCADE')
+class Invite_2(SQLiteModel):
+    from_id = pw.IntegerField()
+    to_id   = pw.IntegerField()
     
     @classmethod
     def InviteFriend(self, from_token, to_username):
         try:
-            #query = TokenList.delete().where(TokenList.token == token)
-            #query.execute()
+
             
-            q1 = TokenList.select(TokenList.user_id).where(TokenList.token == from_token)
-            from_id = q1[0]
+            print(from_token)
+            t1 = TokenList_3.select(TokenList_3.user_id)
+            for itr in t1:
+                #print(itr.user_id)
+                print(itr.user_id)
+                #print(itr.token == from_token)
+                    
+
+            q1 = TokenList_3.select(TokenList_3.user_id).where(TokenList_3.token == from_token)
+            for itr in t1:
+                #print(itr.user_id)
+                print(itr.user_id)
+            
+            from_id = q1[0].user_id
             print(from_id) # query[0] is user id
             
+            print(q1)
+            print(len(q1))
+
             q2 = User.select(User.id).where(User.username == to_username)
-            if len(q2) == 1:
-                to_id = q2[0]
+            if q2.count() == 1:
+                to_id = q2[0].id
                 print(to_id)
 
                 
                 if from_id == to_id:
-                    return json.dumps({'status':1, 'message': 'You cannot invite yourself'})                
+                    return json.dumps({'status':1, 'message': 'You cannot invite_2 yourself'})                
 
-                q3 = Invite.select().where((Invite.from_id == from_id) & (Invite.to_id == to_id))
-                if len(q3) != 0:
-                    return json.dumps({'status':1, 'message': '​Already invited'})
+                q3 = Invite_2.select().where((Invite_2.from_id == from_id) & (Invite_2.to_id == to_id))
+                #print(q3.count())
+                if q3.count() != 0:
+                    return json.dumps({'status':1, 'message': '​Already invite_2d'})
 
-                q4 = Invite.select().where((Invite.from_id == to_id) & (Invite.to_id == from_id))
-                if len(q4) != 0:
-                    return json.dumps({'status':1, 'message': '​<id> has invited you'})
+                q4 = Invite_2.select().where((Invite_2.from_id == to_id) & (Invite_2.to_id == from_id))
+                if q4.count() != 0:
+                    return json.dumps({'status':1, 'message': '​<id> has invite_2d you'})
 
                 # check: ​“<id>​is already your friend”
-                q5 = Friend.select().where((Friend.friendA_id == from_id) && (Friend.friendB_id == to_id))
-                if len(q5) != 0:
+                q5 = Friend.select().where((Friend.friendA_id == from_id) & (Friend.friendB_id == to_id))
+                if q5.count() != 0:
                     return json.dumps({'status':1, 'message': '<id>​is already your friend'})
 
                 
-                # if no problem, then insert into invite list
-                Invite.create(from_id=from_id, to_id=to_id)
-                return json.dumps({'status':0, 'message': 'Success!'})
+                # if no problem, then insert into invite_2 list
+                Invite_2.create(from_id=from_id, to_id=to_id)
+                json_file =  json.dumps({'status':0, 'message': 'Success!'})
+                return json_file
+
             
-            elif len(q2) == 0:
+            elif q2.count() == 0:
                 json_file = json.dumps({'status':1, 'message': '​<id>​does not exist'})
                 return json_file
 
@@ -164,7 +179,7 @@ class Friend(SQLiteModel):
 
 def CreateTable():
     User.create_table()
-    TokenList.create_table()
+    TokenList_3.create_table()
 
 
 def TCP_Connect(TCP_IP, TCP_Port):
@@ -179,8 +194,10 @@ def TCP_Connect(TCP_IP, TCP_Port):
 def main():
     server = TCP_Connect(sys.argv[1], int(sys.argv[2]))
     User.create_table()
-    TokenList.create_table()
-    TokenList.delete().execute()
+    TokenList_3.create_table()
+    Invite_2.create_table()
+    Friend.create_table()
+    TokenList_3.delete().execute()
 
     while True:
         (cSock, addr) = server.accept()
@@ -217,7 +234,7 @@ def main():
             
             elif command[0] == "logout":
                 if len(command) == 2:
-                    json_file = TokenList.Logout_User(command[1])
+                    json_file = TokenList_3.Logout_User(command[1])
                 elif len(command) < 2:
                     json_file = json.dumps({'status':1, 'message': "Not login yet"})
                 else:
@@ -236,13 +253,14 @@ def main():
                 else:
                     json_file = json.dumps({'status':1, 'message': "Usage: delete​<user>"})             
 
+
             elif command[0] == "invite":
                 if len(command) == 3:
-                    pass
+                    json_file = Invite_2.InviteFriend(command[1], command[2])
                 elif len(command) == 2:
                     json_file = json.dumps({'status':1, 'message': "Not login yet"})
                 else:
-                    json_file = json.dumps({'status':1, 'message': "Usage: invite​<user>​​<id>"})
+                    json_file = json.dumps({'status':1, 'message': "Usage: invite_2​<user>​​<id>"})
 
             print(json_file)
             msg_byte = json_file.encode('utf-8')
