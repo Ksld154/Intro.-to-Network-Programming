@@ -331,7 +331,35 @@ class Friend(SQLiteModel):
         except Exception as e:
             print(e)
 
+class Post(SQLiteModel):
+    from_id = pw.ForeignKeyField(User, on_update='CASCADE', on_delete='CASCADE')
+    message = pw.TextField()
 
+    @classmethod
+    def PostMsg(self, token, msg, arg_num):
+        try:
+            print(arg_num)
+            if arg_num != 3:  #arg_num == 2 | arg_num > 3
+                q1 = TokenList.select().where(TokenList.token == token)
+                if q1.count() == 1: 
+                    return json.dumps({'status':1, 'message': 'Usage: post​<user>​​<message>'}, indent=2)
+                elif q1.count() == 0:
+                    return json.dumps({'status':1, 'message': "Not login yet"}, indent=2)  
+
+            # arg_num == 3
+            q1 = TokenList.select(TokenList.user_id).where(TokenList.token == token)
+            print(q1.count())
+            if q1.count() == 1: 
+                from_id = q1[0].user_id
+                Post.create(from_id=from_id, message=msg)
+                return json.dumps({'status':0, 'message': 'Success!'}, indent=2)
+
+            elif q1.count() == 0:
+                return json.dumps({'status':1, 'message': "Not login yet"}, indent=2)                    # not valid token
+
+        
+        except Exception as e:
+            print(e)
 
 
 
@@ -410,9 +438,9 @@ def main():
 
             elif command[0] == "invite":
                 if len(command) >= 3:
-                    json_file = Invite.InviteFriend(command[1], command[2], arg_num)
+                    json_file = Invite.InviteFriend(command[1], command[2], len(command))
                 elif len(command) == 2:
-                    json_file = Invite.InviteFriend(command[1], None, arg_num)
+                    json_file = Invite.InviteFriend(command[1], None, len(command))
                 elif len(command) == 1:
                     json_file = json.dumps({'status':1, 'message': "Not login yet"}, indent=2)
 
@@ -425,9 +453,9 @@ def main():
             
             elif command[0] == 'accept-invite':
                 if len(command) >= 3:
-                    json_file = Invite.AcceptInvite(command[1], command[2], arg_num)
+                    json_file = Invite.AcceptInvite(command[1], command[2], len(command))
                 elif len(command) == 2:
-                    json_file = Invite.AcceptInvite(command[1], None, arg_num)
+                    json_file = Invite.AcceptInvite(command[1], None, len(command))
                 elif len(command) == 1:
                     json_file = json.dumps({'status':1, 'message': "Not login yet"}, indent=2)
             
@@ -439,13 +467,12 @@ def main():
             
             elif command[0] == 'post':
                 post_command = ClientMsg.split(None, 2)
+                print(len(post_command))
                 if len(post_command) >= 3:
-                    json_file = Post.PostMsg(ClientMsg[1], ClientMsg[2], arg_num)
-                    pass
+                    json_file = Post.PostMsg(post_command[1], post_command[2], len(post_command))
                 elif len(post_command) == 2:
-                    json_file = Post.PostMsg(ClientMsg[1], None, arg_num)
-                    pass
-                elif len(post_command) == 1
+                    json_file = Post.PostMsg(post_command[1], None, len(post_command))
+                elif len(post_command) == 1:
                     json_file = json.dumps({'status':1, 'message': "Not login yet"}, indent=2)
 
             else:
