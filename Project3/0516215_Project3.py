@@ -236,23 +236,100 @@ class Invite(SQLiteModel):
                 .join(Invite, pw.JOIN.INNER, on=(User.id == Invite.from_id))
                 .where(Invite.to_id == target_id))
 
-                result_list = []
-                for itr in q2:
-                    print(itr.username)
-                    result_list.append(itr.username)
+                # result_list = []
+                # for itr in q2:
+                #     print(itr.username)
+                #     result_list.append(itr.username)
+                res = [t.username for t in q2]
+                # print(res)
 
-                return json.dumps({'status':0, 'invite': result_list}, indent=2)
+                return json.dumps({'status':0, 'invite': res}, indent=2)
             elif q1.count() == 0:
                 return json.dumps({'status':1, 'message': "Not login yet"}, indent=2)            # not valid token
             
         except Exception as e:
             print(e)
 
+    @classmethod
+    def AcceptInvite(self, to_token, from_username, arg_num):
+        try:
+            if arg_num != 3:  #arg_num == 2 | arg_num > 3
+                q1 = TokenList.select().where(TokenList.token == to_token)
+                if q1.count() == 1: 
+                    return json.dumps({'status':1, 'message': 'Usage: accept-invite​<user>​​<id>'}, indent=2)
+                elif q1.count() == 0:
+                    return json.dumps({'status':1, 'message': "Not login yet"}, indent=2)  
+
+            # arg_num == 3
+            q1 = TokenList.select(TokenList.user_id).where(TokenList.token == to_token)
+            if q1.count() == 1: 
+                to_id = q1[0].user_id
+            elif q1.count() == 0:
+                return json.dumps({'status':1, 'message': "Not login yet"}, indent=2)                    # not valid token
+
+            # if (q1.count() == 1) & (to_username == None):
+            #     return json.dumps({'status':1, 'message': "Usage: accept-invite​<user>​​<id>"}, indent=2)  # format problem
+            # elif to_username == None:
+            #     return json.dumps({'status':1, 'message': "Not login yet"}, indent=2)                   # not valid token
+
+
+            q2 = User.select(User.id).where(User.username == from_username)
+            if q2.count() == 1:
+                from_id = q2[0].id
+                           
+                q3 = Invite.select().where((Invite.from_id == from_id) & (Invite.to_id == to_id))
+                if q3.count() == 0:
+                    return json.dumps({'status':1, 'message': '​<id>​did not invite you'}, indent=2)
+
+                print(to_id)
+                print(from_id)
+
+                # if no problem, then insert into friend list
+                Invite.delete().where((Invite.from_id == from_id) & (Invite.to_id == to_id)).execute()
+                Friend.create(friendA_id=from_id, friendB_id=to_id)
+                Friend.create(friendA_id=to_id, friendB_id=from_id)
+                return json.dumps({'status':0, 'message': 'Success!'}, indent=2)
+                 
+            elif q2.count() == 0:
+                return json.dumps({'status':1, 'message': '​<id>​did not invite you'}, indent=2)
+        except Exception as e:
+            print(e)
+
+
 class Friend(SQLiteModel):
     friendA_id = pw.ForeignKeyField(User, on_update='CASCADE', on_delete='CASCADE')
     friendB_id = pw.ForeignKeyField(User, on_update='CASCADE', on_delete='CASCADE')
-    pass
+    
+    @classmethod    
+    def ListFriend(self, token, arg_num):
+        try:
+            if arg_num > 2:
+                q1 = TokenList.select().where(TokenList.token == token)
+                if q1.count() == 1: 
+                    return json.dumps({'status':1, 'message': 'Usage: list-friend​<user>'}, indent=2)
+                elif q1.count() == 0:
+                    return json.dumps({'status':1, 'message': "Not login yet"}, indent=2)            # not valid token
+            
+            q1 = TokenList.select(TokenList.user_id).where(TokenList.token == token)
+            if q1.count() == 1: 
+                target_id = q1[0].user_id
+                
+                # do list-friend
 
+                q2 = (User
+                .select(User.username)
+                .join(Friend, pw.JOIN.INNER, on=(User.id == Friend.friendA_id))
+                .where(Friend.friendB_id == target_id))
+
+
+                res = [t.username for t in q2]
+
+                return json.dumps({'status':0, 'friend': res}, indent=2)
+            elif q1.count() == 0:
+                return json.dumps({'status':1, 'message': "Not login yet"}, indent=2)            # not valid token
+            
+        except Exception as e:
+            print(e)
 
 
 
@@ -325,26 +402,20 @@ def main():
                 #     json_file = json.dumps({'status':1, 'message': "Usage: logout​<user>"}, indent=2)
             
             
-            
-            # not finished!!!
             elif command[0] == "delete":
                 if len(command) < 2:
                     json_file = json.dumps({'status':1, 'message': "Not login yet"}, indent=2)
                 else:
-                    json_file = User.Delete_User(command[1], len(command))
-                    #json_file = json.dumps({'status':1, 'message': "Usage: delete​<user>"}, indent=2)             
-
+                    json_file = User.Delete_User(command[1], len(command))           
 
             elif command[0] == "invite":
-                if len(command) == 3:
+                if len(command) >= 3:
                     json_file = Invite.InviteFriend(command[1], command[2], arg_num)
                 elif len(command) == 2:
                     json_file = Invite.InviteFriend(command[1], None, arg_num)
                 elif len(command) == 1:
                     json_file = json.dumps({'status':1, 'message': "Not login yet"}, indent=2)
-                else:
-                    json_file = Invite.InviteFriend(command[1], command[2], arg_num)
-                    #0json_file = json.dumps({'status':1, 'message': "Usage: invite​<user>​​<id>"}, indent=2)
+
             
             elif command[0] == 'list-invite':
                 if len(command) < 2:
@@ -352,9 +423,30 @@ def main():
                 else:
                     json_file = Invite.ListInvite(command[1], len(command))
             
-            # elif command[0] == 'listuser':
-            #     User.ListUser()
+            elif command[0] == 'accept-invite':
+                if len(command) >= 3:
+                    json_file = Invite.AcceptInvite(command[1], command[2], arg_num)
+                elif len(command) == 2:
+                    json_file = Invite.AcceptInvite(command[1], None, arg_num)
+                elif len(command) == 1:
+                    json_file = json.dumps({'status':1, 'message': "Not login yet"}, indent=2)
             
+            elif command[0] == 'list-friend':
+                if len(command) >= 2:
+                    json_file = Friend.ListFriend(command[1], len(command))
+                else:
+                    json_file = json.dumps({'status':1, 'message': "Not login yet"}, indent=2)
+            
+            elif command[0] == 'post':
+                post_command = ClientMsg.split(None, 2)
+                if len(post_command) >= 3:
+                    json_file = Post.PostMsg(ClientMsg[1], ClientMsg[2], arg_num)
+                    pass
+                elif len(post_command) == 2:
+                    json_file = Post.PostMsg(ClientMsg[1], None, arg_num)
+                    pass
+                elif len(post_command) == 1
+                    json_file = json.dumps({'status':1, 'message': "Not login yet"}, indent=2)
 
             else:
                 json_file = json.dumps({'status':1, 'message': "Invaild command"}, indent=2)
