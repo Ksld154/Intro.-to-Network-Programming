@@ -5,7 +5,6 @@ import peewee as pw
 import os
 import hashlib
 import time
-#from peewee import	*
 
 
 #def Connect_DB():
@@ -66,18 +65,6 @@ class User(SQLiteModel):
 
         except pw.PeeweeException as e:
             print(e)
-    
-    
-    # def ListUser(self):
-    #     try:
-    #         query = User.select(User.username)
-    #         tmp1 = list(query)
-    #         for itr in tmp1:
-    #             print(itr.username)
-
-
-    #     except pw.IntegrityError as e:
-    #         print(e)
 
     @classmethod
     def Delete_User(self, token, arg_num):
@@ -338,7 +325,6 @@ class Post(SQLiteModel):
     @classmethod
     def PostMsg(self, token, msg, arg_num):
         try:
-            print(arg_num)
             if arg_num != 3:  #arg_num == 2 | arg_num > 3
                 q1 = TokenList.select().where(TokenList.token == token)
                 if q1.count() == 1: 
@@ -348,7 +334,6 @@ class Post(SQLiteModel):
 
             # arg_num == 3
             q1 = TokenList.select(TokenList.user_id).where(TokenList.token == token)
-            print(q1.count())
             if q1.count() == 1: 
                 from_id = q1[0].user_id
                 Post.create(from_id=from_id, message=msg)
@@ -357,9 +342,54 @@ class Post(SQLiteModel):
             elif q1.count() == 0:
                 return json.dumps({'status':1, 'message': "Not login yet"}, indent=2)                    # not valid token
 
-        
         except Exception as e:
             print(e)
+
+    @classmethod
+    def ReceivePost(self, token, arg_num):
+        try:
+            if arg_num > 2: 
+                q1 = TokenList.select().where(TokenList.token == token)
+                if q1.count() == 1: 
+                    return json.dumps({'status':1, 'message': 'Usage: receive-post​<user>​​<message>'}, indent=2)
+                elif q1.count() == 0:
+                    return json.dumps({'status':1, 'message': "Not login yet"}, indent=2)  
+                    
+            # arg_num == 2
+            q1 = TokenList.select(TokenList.user_id).where(TokenList.token == token)
+            if q1.count() == 1: 
+                from_id = q1[0].user_id
+                
+                q2 = (User
+                .select(User.username, Post.message)
+                .join(Post, pw.JOIN.INNER, on=(User.id == Post.from_id))
+                .switch(User)
+                .join(Friend, pw.JOIN.INNER, on=(User.id == Friend.friendB_id))
+                .where(Friend.friendA_id == from_id)
+                )
+                
+                # res = [t.username for t in q2]
+                # print(res)
+
+
+                result_json = {'status':0, 'post': []}
+                for row in q2:
+                    row_data ={
+                        'id': row.username,
+                        'message': row.post.message,
+                    }
+                    #print(row_data)         
+                    result_json['post'].append(row_data)
+
+
+                return json.dumps(result_json, indent=2)
+
+            elif q1.count() == 0:
+                return json.dumps({'status':1, 'message': "Not login yet"}, indent=2)                    # not valid token
+
+        except Exception as e:
+            print(e)
+
 
 
 
@@ -383,12 +413,11 @@ def main():
     TokenList.create_table()
     Invite.create_table()
     Friend.create_table()
+    Post.create_table()
     TokenList.delete().execute()
 
     while True:
         (cSock, addr) = server.accept()
-
-        #print(addr)
 
         msg = cSock.recv(1024)
         ClientMsg = msg.decode('utf-8').rstrip()
@@ -401,9 +430,6 @@ def main():
             cSock.shutdown(1)
             cSock.close()
             break
-        elif ClientMsg == "closeserv":  #just for convenience
-            print("Shutdown Server")
-            os._exit(0) 
         else:
             command = ClientMsg.split()
             arg_num = len(command)
@@ -413,6 +439,7 @@ def main():
                     json_file = User.Insert_User(command[1], command[2])
                 else:
                     json_file = json.dumps({'status':1, 'message': "Usage: register​ <id>​​ <password>​​"}, indent=2)
+            
             elif command[0] == "login":
                 if len(command) == 3:
                     json_file = User.Login_User(command[1], command[2])
@@ -420,21 +447,16 @@ def main():
                     json_file = json.dumps({'status':1, 'message': "Usage: login​ <id>​​ <password>​"}, indent=2)
             
             elif command[0] == "logout":
-
-                if len(command) < 2:
-                    json_file = json.dumps({'status':1, 'message': "Not login yet"}, indent=2)
-                else:
+                if len(command) >= 2:
                     json_file = TokenList.Logout_User(command[1], len(command))
-                # else:
-                #     #json_file = TokenList.Logout_User(command[1])
-                #     json_file = json.dumps({'status':1, 'message': "Usage: logout​<user>"}, indent=2)
-            
+                else:
+                    json_file = json.dumps({'status':1, 'message': "Not login yet"}, indent=2)
             
             elif command[0] == "delete":
-                if len(command) < 2:
-                    json_file = json.dumps({'status':1, 'message': "Not login yet"}, indent=2)
-                else:
+                if len(command) >= 2:
                     json_file = User.Delete_User(command[1], len(command))           
+                else:
+                    json_file = json.dumps({'status':1, 'message': "Not login yet"}, indent=2)
 
             elif command[0] == "invite":
                 if len(command) >= 3:
@@ -443,13 +465,12 @@ def main():
                     json_file = Invite.InviteFriend(command[1], None, len(command))
                 elif len(command) == 1:
                     json_file = json.dumps({'status':1, 'message': "Not login yet"}, indent=2)
-
             
             elif command[0] == 'list-invite':
-                if len(command) < 2:
-                    json_file = json.dumps({'status':1, 'message': "Not login yet"}, indent=2)
-                else:
+                if len(command) >= 2:
                     json_file = Invite.ListInvite(command[1], len(command))
+                else:
+                    json_file = json.dumps({'status':1, 'message': "Not login yet"}, indent=2)
             
             elif command[0] == 'accept-invite':
                 if len(command) >= 3:
@@ -467,7 +488,7 @@ def main():
             
             elif command[0] == 'post':
                 post_command = ClientMsg.split(None, 2)
-                print(len(post_command))
+                #print(len(post_command))
                 if len(post_command) >= 3:
                     json_file = Post.PostMsg(post_command[1], post_command[2], len(post_command))
                 elif len(post_command) == 2:
@@ -475,8 +496,15 @@ def main():
                 elif len(post_command) == 1:
                     json_file = json.dumps({'status':1, 'message': "Not login yet"}, indent=2)
 
+            elif command[0] == 'receive-post':
+                if len(command) >= 2:
+                    json_file = Post.ReceivePost(command[1], len(command))
+                else:
+                    json_file = json.dumps({'status':1, 'message': "Not login yet"}, indent=2)                    
+
             else:
                 json_file = json.dumps({'status':1, 'message': "Invaild command"}, indent=2)
+            
             print(json_file)
             msg_byte = json_file.encode('utf-8')
             cSock.send(msg_byte)
