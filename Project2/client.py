@@ -30,6 +30,7 @@ class Client(object):
                         cmd = self.__attach_token(cmd)
                         s.send(cmd.encode())
                         resp = s.recv(4096).decode()
+                        print(resp)
                         self.__show_result(json.loads(resp), cmd)
                 except Exception as e:
                     print("a")
