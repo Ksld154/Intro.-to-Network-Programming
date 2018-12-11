@@ -1,3 +1,4 @@
+# pylint: disable=E1111
 import sys
 import socket
 from model import * # pylint: disable=W0614
@@ -73,17 +74,17 @@ class DBControl(object):
                 t = Token.create(token=str(uuid.uuid4()), owner=res)
 
             # search Subscribe table and return the subscribed topics by the user 
-            s = Subscribe.select().where(Subscribe.user == t.owner)
+            subscribed_topics = Subscribe.select().where(Subscribe.user == t.owner)
             topics = []
-            for subscribed_topic in s:
-                topics.append(subscribed_topic.group.group_name)
+            for s in subscribed_topics:
+                topics.append(s.group.group_name)
 
             
             return {
                 'status': 0,
                 'token': t.token,
                 'message': 'Success!',
-                'subscribed_topics': topics
+                'subscribed': topics
             }
         else:
             return {
@@ -253,6 +254,7 @@ class DBControl(object):
         
         message = ' '.join(args)
         receiver = User.get_or_none(User.username == username)       
+        
         if receiver:
             res1 = Friend.get_or_none((Friend.user == token.owner) & (Friend.friend == receiver))
             res2 = Friend.get_or_none((Friend.user == receiver) & (Friend.friend == token.owner))
@@ -266,7 +268,7 @@ class DBControl(object):
                     conn.start()
                     conn.connect('admin', 'admin', wait=True)
 
-                    dest = '/queue/' + username
+                    dest = '/queue/' + str(username)
                     # <<<USER_A->USER_B: HELLO WORLD>>>
                     msg_formatted = '<<<{USER_A}->{USER_B}: {msg}>>>'.format(USER_A=token.owner.username, USER_B=username, msg=message)
 
@@ -294,6 +296,139 @@ class DBControl(object):
                 'message': 'No such user exist'
             }
         pass
+
+    @__auth
+    def list_group(self, token, *args):
+        if args:
+            return {
+                'status': 1,
+                'message': 'Usage: list-group <user>'
+            }
+        groups = Group.select()
+        res = []
+        for g in groups:
+            res.append(g.group_name)
+        return {
+            'status': 0,
+            'groups': res
+        }
+
+    @__auth
+    def list_joined(self, token, *args):
+        if args:
+            return {
+                'status': 1,
+                'message': 'Usage: list-joined <user>'
+            }
+        
+        res = Subscribe.select().where(Subscribe.user == token.owner)
+        joined_groups = []
+        for r in res:
+            joined_groups.append(r.group.group_name)
+        
+        return {
+            'status': 0,
+            'joined': joined_groups
+        }
+
+    @__auth
+    def create_group(self, token, group=None, *args):
+        if not group or args:
+            return {
+                'status': 1,
+                'message': 'Usage: create-group <user> <group>'
+            }            
+        
+        res = Group.get_or_none(Group.group_name == group)
+        if res:
+            return {
+                'status': 1,
+                'message': '{} already exist'.format(group)
+            }
+        else:
+            
+            # connect to ActiveMQ server and SUBSRCIBE to that topic(join that group)  => Wrong!!!
+            new_group = Group.create(group_name=group)
+            Subscribe.create(user=token.owner, group=new_group)
+            return {
+                'status': 0,
+                'message': 'Success!',
+                'gotta_subscribe': group
+            }
+
+    @__auth
+    def join_group(self, token, group=None, *args):
+        if not group or args:
+            return {
+                'status': 1,
+                'message': 'Usage: join-group <user> <group>'
+            }
+        
+        gotta_join = Group.get_or_none(Group.group_name == group)
+        if gotta_join:
+            double_join = Subscribe.get_or_none((Subscribe.user == token.owner) & (Subscribe.group == gotta_join))
+            
+            if double_join:
+                return {
+                    'status': 1,
+                    'message': 'Already a member of {}'.format(group)
+                }                
+            else:
+                # join the group
+                Subscribe.create(user=token.owner, group=gotta_join)
+                return {
+                    'status': 0,
+                    'message': 'Success!',
+                    'gotta_subscribe': group
+                }
+        else:
+            return {
+                'status': 1,
+                'message': '{} does not exist'.format(group)
+            }         
+
+    @__auth
+    def send_group(self, token, group=None, *args):
+        if not group:
+            return {
+                'status': 1,
+                'message': 'Usage: send-group <user> <group> <message>'
+            }
+        
+        message = ' '.join(args)
+        receive_group = Group.get_or_none(Group.group_name == group)       
+        
+        if receive_group:
+            inside_group = Subscribe.get_or_none((Subscribe.user == token.owner) & (Subscribe.group == receive_group))
+
+            if inside_group:
+                # connect to ActiveMQ
+                conn = stomp.Connection([('localhost', 61613)])
+                conn.start()
+                conn.connect('admin', 'admin', wait=True)
+
+                dest = '/topic/' + str(group)
+                # <<<USER_A->GROUP<GROUP_A>: HELLO WORLD>>>
+                msg_formatted = '<<<{USER_A}->GROUP<{GROUP_A}>: {msg}>>>'.format(USER_A=token.owner.username, GROUP_A=group, msg=message)
+                conn.send(body=msg_formatted, destination=dest)
+
+                return {
+                    'status': 0,
+                    'message': 'Success!'
+                }
+
+            else:
+                return {
+                    'status': 1,
+                    'message': 'You are not the member of {}'.format(group)
+                }
+        else:
+            return {
+                'status': 1,
+                'message': 'No such group exist'
+            }
+
+            
 
 class Server(object):
     def __init__(self, ip, port):

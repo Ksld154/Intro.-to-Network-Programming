@@ -9,8 +9,14 @@ class MyListener(stomp.ConnectionListener):
     def on_error(self, headers, message):
         print('received an error "%s"' % message)
     def on_message(self, headers, message):
-        print('received a message "%s"' % message)
+        print(message)
 
+def ConnectActiveMQ():
+    conn = stomp.Connection([('localhost', 61613)])
+    conn.set_listener('', MyListener())
+    conn.start()
+    conn.connect('admin', 'admin', wait=True)
+    return conn
 
 class Client(object):
     def __init__(self, ip, port):
@@ -41,8 +47,7 @@ class Client(object):
                         resp = s.recv(4096).decode()
                         self.__show_result(json.loads(resp), cmd)
                 except Exception as e:
-                    print("a")
-                    print(e)
+                    print("error")
                     print(e, file=sys.stderr)
 
     def __show_result(self, resp, cmd=None):
@@ -69,6 +74,22 @@ class Client(object):
                     print('{}: {}'.format(p['id'], p['message']))
             else:
                 print('No posts')
+        
+        if 'groups' in resp:
+            if len(resp['groups']) > 0:
+                for g in resp['groups']:
+                    print(g)
+            else:
+                print('No groups')
+
+        if 'joined' in resp:
+            if len(resp['joined']) > 0:
+                for j in resp['joined']:
+                    print(j)
+            else:
+                print('No groups')
+                     
+
 
         if cmd:
             command = cmd.split()
@@ -76,23 +97,43 @@ class Client(object):
                 user = command[1]
                 self.cookie[user] = resp['token']
                 
-                ########### CONNECT to ACTIVEMQ server and SUBSCRIBE #############
-                conn = stomp.Connection([('localhost', 61613)])
-                conn.set_listener('', MyListener())
-                conn.start()
-                conn.connect('admin', 'admin', wait=True)
+                ########### CONNECT to ACTIVEMQ server and SUBSCRIBE #############          
+                conn = ConnectActiveMQ()
                 
                 # Subscribe to the joined groups(topics)
-                if 'subscribed_topics' in resp and len(resp['subscribed_topics']) > 0:
-                    self.subscribed[user] = resp['subscribed_topics']
-                    for topic in resp['subscribed_topics']:
-                        path = '/topic/' + topic
-                        print(topic)
-                        conn.subscribe(destination=path, id=topic, ack='auto')
+                if 'subscribed' in resp:
+                    self.subscribed[user] = list()
+                    self.subscribed[user] = resp['subscribed']
 
-                # Subscribe to personal channel(queue)
-                conn.subscribe(destination='/queue/'+user, id=user, ack='auto')                
+                    for topic in resp['subscribed']:
+                        path = '/topic/' + topic
+                        conn.subscribe(destination=path, id=topic, ack='auto')
                 
+                # Subscribe to personal channel(queue)
+                conn.subscribe(destination='/queue/'+user, id=user, ack='auto')      
+
+            
+            ########### SUBSCRIBE ############# 
+            if 'gotta_subscribe' in resp:
+                
+                for owner,token in self.cookie.items():
+                    if token ==  command[1]:            # command[1] is a token!!!
+                        user = owner
+                topic = resp['gotta_subscribe']
+
+                self.subscribed[user].append(topic)     # should update this
+                print(self.subscribed[user])
+
+                conn = ConnectActiveMQ()
+                conn.subscribe(destination='/topic/'+topic, id=topic, ack='auto')             
+
+
+            ########### UNSUBSCRIBE when logout or delete_user############# 
+            if (resp['status'] == 0) and ((command[0] == 'logout') | (command[0] == 'delete')):
+                
+                
+                
+                pass
                 
 
 
