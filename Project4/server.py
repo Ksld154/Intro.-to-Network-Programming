@@ -3,7 +3,13 @@ import socket
 from model import * # pylint: disable=W0614
 import json
 import uuid
+import stomp
 
+# class MyListener(stomp.ConnectionListener):
+#     def on_error(self, headers, message):
+#         print('received an error "%s"' % message)
+#     def on_message(self, headers, message):
+#         print('received a message "%s"' % message)
 
 class DBControl(object):
     def __auth(func):
@@ -236,29 +242,39 @@ class DBControl(object):
         }
 
 
-
     @__auth
-    def send(self, token, username=None, message, *args ):
+    def send(self, token, username=None, *args):
 
-        if not username or args:
+        if not username:
             return {
                 'status': 1,
                 'message': 'Usage: send <user> <friend> <message>'
             }
-
+        
+        message = ' '.join(args)
         receiver = User.get_or_none(User.username == username)       
         if receiver:
             res1 = Friend.get_or_none((Friend.user == token.owner) & (Friend.friend == receiver))
-            if res1:
+            res2 = Friend.get_or_none((Friend.user == receiver) & (Friend.friend == token.owner))
+            if res1 or res2:
 
-                res2 = Token.get_or_none(Token.owner == receiver)
-                if res2:
+                res3 = Token.get_or_none(Token.owner == receiver)
+                if res3:
 
-                    # do something(connect to activemq?)
+                    # connect to ActiveMQ
+                    conn = stomp.Connection([('localhost', 61613)])
+                    conn.start()
+                    conn.connect('admin', 'admin', wait=True)
+
+                    dest = '/queue/' + username
+                    # <<<USER_A->USER_B: HELLO WORLD>>>
+                    msg_formatted = '<<<{USER_A}->{USER_B}: {msg}>>>'.format(USER_A=token.owner.username, USER_B=username, msg=message)
+
+                    conn.send(body=msg_formatted, destination=dest)
 
                     return {
                         'status': 0,
-                        'message': ''  #activemq message
+                        'message': 'Success!'  #activemq message
                     }
                 else:
                     return{
@@ -298,6 +314,7 @@ class Server(object):
         self.sock.bind((self.ip, self.port))
         self.sock.listen(100)
         socket.setdefaulttimeout(0.1)
+        Token.delete().execute()
         while True:
             try:
                 conn, addr = self.sock.accept()

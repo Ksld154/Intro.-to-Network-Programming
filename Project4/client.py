@@ -78,7 +78,7 @@ class Client(object):
                 
                 ########### CONNECT to ACTIVEMQ server and SUBSCRIBE #############
                 conn = stomp.Connection([('localhost', 61613)])
-                conn.set_listener('', stomp.listener.PrintingListener())
+                conn.set_listener('', MyListener())
                 conn.start()
                 conn.connect('admin', 'admin', wait=True)
                 

@@ -47,4 +47,4 @@ class Subscribe(BaseModel):
 
 if __name__ == '__main__':
     db.connect()
-    db.create_tables([User, Invitation, Friend, Post, Follow, Token])
+    db.create_tables([User, Invitation, Friend, Post, Follow, Token, Group, Subscribe])
