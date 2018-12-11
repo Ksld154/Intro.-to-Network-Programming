@@ -131,9 +131,16 @@ class Client(object):
             ########### UNSUBSCRIBE when logout or delete_user############# 
             if (resp['status'] == 0) and ((command[0] == 'logout') | (command[0] == 'delete')):
                 
+                for owner,token in self.cookie.items():
+                    if token ==  command[1]:            # command[1] is a token!!!
+                        user = owner                
                 
-                
-                pass
+                conn = ConnectActiveMQ()
+                for topic in self.subscribed[user]:
+                    conn.unsubscribe('/topic/'+topic)
+                conn.unsubscribe('/queue/'+user)
+
+                self.subscribed[user].clear()
                 
 
 
