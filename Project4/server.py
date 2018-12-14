@@ -267,6 +267,7 @@ class DBControl(object):
 
                     conn.send(body=msg_formatted, destination=dest)
 
+                    conn.disconnect()
                     return {
                         'status': 0,
                         'message': 'Success!'  #activemq message
@@ -404,7 +405,7 @@ class DBControl(object):
                 # <<<USER_A->GROUP<GROUP_A>: HELLO WORLD>>>
                 msg_formatted = '<<<{USER_A}->GROUP<{GROUP_A}>: {msg}>>>'.format(USER_A=token.owner.username, GROUP_A=group, msg=message)
                 conn.send(body=msg_formatted, destination=dest)
-
+                conn.disconnect()
                 return {
                     'status': 0,
                     'message': 'Success!'

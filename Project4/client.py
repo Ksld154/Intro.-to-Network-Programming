@@ -105,7 +105,6 @@ class Client(object):
 
                     for topic in resp['subscribed']:
                         path = '/topic/' + topic
-                        print(resp['token']+topic)
                         conn.subscribe(destination=path, id=resp['token']+topic, ack='auto')
                 
                 # Subscribe to personal channel(queue)
