@@ -6,12 +6,6 @@ import json
 import uuid
 import stomp
 
-# class MyListener(stomp.ConnectionListener):
-#     def on_error(self, headers, message):
-#         print('received an error "%s"' % message)
-#     def on_message(self, headers, message):
-#         print('received a message "%s"' % message)
-
 class DBControl(object):
     def __auth(func):
         def validate_token(self, token=None, *args):
@@ -73,13 +67,12 @@ class DBControl(object):
             if not t:
                 t = Token.create(token=str(uuid.uuid4()), owner=res)
 
-            # search Subscribe table and return the subscribed topics by the user 
+            # search Subscribe table and return all subscribed topics by the user 
             subscribed_topics = Subscribe.select().where(Subscribe.user == t.owner)
             topics = []
             for s in subscribed_topics:
                 topics.append(s.group.group_name)
 
-            
             return {
                 'status': 0,
                 'token': t.token,
@@ -260,8 +253,8 @@ class DBControl(object):
             res2 = Friend.get_or_none((Friend.user == receiver) & (Friend.friend == token.owner))
             if res1 or res2:
 
-                res3 = Token.get_or_none(Token.owner == receiver)
-                if res3:
+                online = Token.get_or_none(Token.owner == receiver)
+                if online:
 
                     # connect to ActiveMQ
                     conn = stomp.Connection([('localhost', 61613)])
@@ -347,7 +340,7 @@ class DBControl(object):
             }
         else:
             
-            # connect to ActiveMQ server and SUBSRCIBE to that topic(join that group)  => Wrong!!!
+            # create the group in DB
             new_group = Group.create(group_name=group)
             Subscribe.create(user=token.owner, group=new_group)
             return {

@@ -34,6 +34,7 @@ class Client(object):
             sys.exit(1)
 
     def run(self):
+        conn = ConnectActiveMQ()
         while True:
             cmd = sys.stdin.readline()
             if cmd.rstrip() == 'exit':
@@ -45,12 +46,12 @@ class Client(object):
                         cmd = self.__attach_token(cmd)
                         s.send(cmd.encode())
                         resp = s.recv(4096).decode()
-                        self.__show_result(json.loads(resp), cmd)
+                        self.__show_result(json.loads(resp), cmd, conn)
                 except Exception as e:
                     print("error")
                     print(e, file=sys.stderr)
 
-    def __show_result(self, resp, cmd=None):
+    def __show_result(self, resp, cmd=None, conn=None):
         if 'message' in resp:
             print(resp['message'])
 
@@ -89,8 +90,6 @@ class Client(object):
             else:
                 print('No groups')
                      
-
-
         if cmd:
             command = cmd.split()
             if resp['status'] == 0 and command[0] == 'login':   # login successful
@@ -98,8 +97,7 @@ class Client(object):
                 self.cookie[user] = resp['token']
                 
                 ########### CONNECT to ACTIVEMQ server and SUBSCRIBE #############          
-                conn = ConnectActiveMQ()
-                
+
                 # Subscribe to the joined groups(topics)
                 if 'subscribed' in resp:
                     self.subscribed[user] = list()
@@ -107,7 +105,8 @@ class Client(object):
 
                     for topic in resp['subscribed']:
                         path = '/topic/' + topic
-                        conn.subscribe(destination=path, id=topic, ack='auto')
+                        print(resp['token']+topic)
+                        conn.subscribe(destination=path, id=resp['token']+topic, ack='auto')
                 
                 # Subscribe to personal channel(queue)
                 conn.subscribe(destination='/queue/'+user, id=user, ack='auto')      
@@ -120,29 +119,24 @@ class Client(object):
                     if token ==  command[1]:            # command[1] is a token!!!
                         user = owner
                 topic = resp['gotta_subscribe']
+                self.subscribed[user].append(topic)     
 
-                self.subscribed[user].append(topic)     # should update this
-                print(self.subscribed[user])
-
-                conn = ConnectActiveMQ()
-                conn.subscribe(destination='/topic/'+topic, id=topic, ack='auto')             
+                conn.subscribe(destination='/topic/'+topic, id=command[1]+topic, ack='auto')      # should modify id       
 
 
             ########### UNSUBSCRIBE when logout or delete_user############# 
             if (resp['status'] == 0) and ((command[0] == 'logout') | (command[0] == 'delete')):
                 
                 for owner,token in self.cookie.items():
-                    if token ==  command[1]:            # command[1] is a token!!!
+                    if token ==  command[1]:            
                         user = owner                
-                
-                conn = ConnectActiveMQ()
+
                 for topic in self.subscribed[user]:
-                    conn.unsubscribe('/topic/'+topic)
-                conn.unsubscribe('/queue/'+user)
-
+                    unsub = command[1]+topic
+                    conn.unsubscribe(unsub)               # should modify id  
+                conn.unsubscribe(user)                    # should modify id  
                 self.subscribed[user].clear()
-                
-
+            
 
     def __attach_token(self, cmd=None):
         if cmd:
