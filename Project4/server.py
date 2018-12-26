@@ -239,7 +239,7 @@ class DBControl(object):
     @__auth
     def send(self, token, username=None, *args):
 
-        if not username:
+        if not username or len(args) <= 0:
             return {
                 'status': 1,
                 'message': 'Usage: send <user> <friend> <message>'
@@ -383,7 +383,7 @@ class DBControl(object):
 
     @__auth
     def send_group(self, token, group=None, *args):
-        if not group:
+        if not group or len(args) <= 0:
             return {
                 'status': 1,
                 'message': 'Usage: send-group <user> <group> <message>'
