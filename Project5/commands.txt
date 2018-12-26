@@ -1,0 +1,16 @@
+[default]
+aws_access_key_id=ASIAQET7FJXWVECRRU24
+aws_secret_access_key=9Gh6Tg17c37iaBHZMXrqjBVSWNpOK2kMHitXEn13
+aws_session_token=FQoGZXIvYXdzELj//////////wEaDB1/XI90nfUvCvKRrSLrAu8Zd2jUdaqKQ1GCC2FxqHqRArTLrMevarHaIAFIoPD13UJZPbRMMAxEVpBG4DkU7Colxnl9uV+Mkc9uODhFduJRQyigBVNJZ/tuTmq1SsoxghDiQPminaKVXhTlOSlQ85cqTwiJ0wex17hDwmxgF9vgeBaem8Rgm5raed20wmwX+CO5oWyGmPuO4YObacxqt4GIlAQKX0ULLEbB0ArKhW+mL7LTN2o4vchljPt/FLw9a7H/M+wpQ8eYGLxBfv5ShUnpsZJI8O2K59uhtjnV7u+XlqrBvhJ7g+0VeFp1cCqwIiLvFasSoxcsVOGZZ2yFkCCSDafvqOcjVIwCP1tJaPX4ze8pFk6Vr6Iq5dXEKrbm2pvONRQ+pjPY/9OXzjSO7Ld2cuN3OmZORXn5r67npBu/zLBNAzqrMF+VPw36VZ+axabxhgiBoCTNgfSLxJe8IrqPu95QInlISHDTQkWiFZi/dQ2y4QKdh0ASqSjG3IPhBQ==
+
+
+// connect to EC2 by git bash
+ssh -i 'C:\Users\ardt4\.ssh\test1.pem' ubuntu@54.198.62.206
+ssh -i 'C:\Users\ardt4\.ssh\test1.pem' ubuntu@100.24.223.146
+ubuntu@ip-172-31-33-217:
+
+//MySQL database
+username: test1admin
+password: test1admin
+endpoint: test1db.cocusif4zjcb.us-east-1.rds.amazonaws.com
+port: 3306
