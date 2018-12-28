@@ -5,12 +5,19 @@ aws_session_token=FQoGZXIvYXdzELj//////////wEaDB1/XI90nfUvCvKRrSLrAu8Zd2jUdaqKQ1
 
 
 // connect to EC2 by git bash
-ssh -i 'C:\Users\ardt4\.ssh\test1.pem' ubuntu@54.198.62.206
 ssh -i 'C:\Users\ardt4\.ssh\test1.pem' ubuntu@100.24.223.146
 ubuntu@ip-172-31-33-217:
+region: us-east-1d
 
 //MySQL database
 username: test1admin
 password: test1admin
 endpoint: test1db.cocusif4zjcb.us-east-1.rds.amazonaws.com
 port: 3306
+
+// boto3 create instance
+ImageID: ami-0ac019f4fcb7cb7e6   (Ubuntu18.04 64-bit)
+
+// custom AMI image
+test1_server - ami-09ba593e2c03395d5
+app_server1: i-08d78f8a18cd91e44
