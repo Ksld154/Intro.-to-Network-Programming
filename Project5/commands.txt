@@ -20,4 +20,9 @@ ImageID: ami-0ac019f4fcb7cb7e6   (Ubuntu18.04 64-bit)
 
 // custom AMI image
 test1_server - ami-09ba593e2c03395d5
-app_server1: i-08d78f8a18cd91e44
+app_server: i-08d78f8a18cd91e44
+
+
+// check port status
+netstat -tulpn
+export PATH=$PATH:/home/ubuntu/.local/lib/python3.6

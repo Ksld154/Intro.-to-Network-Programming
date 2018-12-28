@@ -1,6 +1,7 @@
 # pylint: disable=E1111
 import sys
 import socket
+sys.path.append("/home/ubuntu")
 from model import * # pylint: disable=W0614
 import json
 import uuid

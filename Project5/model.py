@@ -1,3 +1,5 @@
+import sys
+sys.path.append('/home/ubuntu/.local/lib/python3.6/site-packages')
 from peewee import *  # pylint: disable=W0614
 
 
