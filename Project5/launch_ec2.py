@@ -1,19 +1,13 @@
 import boto3
+import time
 
-client = boto3.client(
-    'ec2' 
-)
+client = boto3.client('ec2')
 
 user_data = '''#!/bin/bash
 cd /home/ubuntu
 echo 'test' > /home/ubuntu/commandline-output.txt
 python3.6 ./hello_world.py > /home/ubuntu/python.txt
 python3.6 ./server_app.py'''
-
-# user_data = """#cloud-boothook 
-# #!/bin/bash 
-# cd /home/ubuntu
-# echo 'test' > /home/ubuntu/user-data-commandline-output.txt"""
 
 
 resp = client.run_instances(
@@ -29,5 +23,18 @@ resp = client.run_instances(
     UserData=user_data
 )
 
+
+
 for instance in resp['Instances']:
-    print(instance['InstanceId'])
+    created_instance_id = instance['InstanceId']
+print(created_instance_id)
+
+
+time.sleep(10)
+
+# Connect to EC2
+ec2 = boto3.client('ec2')
+
+target_ip = ec2.describe_instances(InstanceIds=[created_instance_id])['Reservations'][0]['Instances'][0]['PublicIpAddress']
+print(target_ip)
+

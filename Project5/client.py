@@ -89,7 +89,12 @@ class Client(object):
                     print(j)
             else:
                 print('No groups')
-                     
+        
+        if 'ip' in resp:
+            print(resp['ip'])
+
+        print(resp)
+
         if cmd:
             command = cmd.split()
             if resp['status'] == 0 and command[0] == 'login':   # login successful

@@ -1,10 +1,12 @@
 # pylint: disable=E1111
 import sys
 import socket
+import time
 from model import * # pylint: disable=W0614
 import json
 import uuid
 import stomp
+import boto3
 
 class DBControl(object):
     def __auth(func):
@@ -73,11 +75,91 @@ class DBControl(object):
             for s in subscribed_topics:
                 topics.append(s.group.group_name)
 
+
+
+
+
+            # also do app server ALLOCATION!!!!
+            # STEP1 : check whether there are available app_servers (inuse < 10)
+            available_server = None
+            try:
+                available_server = (ServerAllocation
+                .select()
+                .group_by(ServerAllocation.server)
+                .having(fn.Count(ServerAllocation.server) < 10)
+                .get()
+                )
+
+            except ServerAllocation.DoesNotExist:
+                available_server = None
+
+            # maybe try get_or_none????
+
+
+            # STEP2: if YES, then return that app_server's ip and port
+            if available_server:
+                print(available_server.server.ip)
+                target_ip = available_server.server.ip                
+                print(target_ip)
+                
+                # target_ip = (AppServer
+                # .select(AppServer.ip)
+                # .where(AppServer == available_server)
+                # )
+                
+                ServerAllocation.create(server=available_server, user=t.owner)
+
+
+            # STEP3: if NO, then create a new EC2 instance, and return it's ip and port
+            else:
+                # create EC2 instance, sleep, get EC2 instance ip
+                # create a row in Server table and ServerAllocation table
+
+                client = boto3.client('ec2')
+
+                user_data = '''#!/bin/bash
+                cd /home/ubuntu
+                echo 'test' > /home/ubuntu/commandline-output.txt
+                python3.6 ./hello_world.py > /home/ubuntu/python.txt
+                python3.6 ./server_app.py'''
+
+                resp = client.run_instances(
+                    ImageId='ami-0b95686768d9b1890',      # my AMI(with trying sys.path.append to import)
+                    InstanceType='t2.micro',
+                    MinCount=1,
+                    MaxCount=1,
+                    SecurityGroupIds=['sg-0100b5a9d0143c2fd'],
+                    KeyName='test1',
+                    UserData=user_data
+                )
+
+                for instance in resp['Instances']:
+                    created_instance_id = instance['InstanceId']
+                print(created_instance_id)
+
+                time.sleep(5)
+
+                # Connect to EC2
+                ec2 = boto3.client('ec2')
+                target_ip = ec2.describe_instances(InstanceIds=[created_instance_id])['Reservations'][0]['Instances'][0]['PublicIpAddress']
+                print(target_ip)
+
+
+
+                # create a row in Server table and ServerAllocation table
+                NewServer = AppServer.create(ip=target_ip, instance_id=created_instance_id)
+                ServerAllocation.create(server=NewServer, user=t.owner)
+
+
+
+
+
             return {
                 'status': 0,
                 'token': t.token,
                 'message': 'Success!',
-                'subscribed': topics
+                'subscribed': topics,
+                'ip':target_ip
             }
         else:
             return {

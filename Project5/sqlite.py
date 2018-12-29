@@ -3,14 +3,14 @@ sys.path.append('/home/ubuntu/.local/lib/python3.6/site-packages')
 from peewee import *  # pylint: disable=W0614
 
 
-# db = SqliteDatabase('Project4.db', pragmas={'foreign_keys': 1})
-db = MySQLDatabase(
-    database = "test1db", 
-    host = "test1db.cocusif4zjcb.us-east-1.rds.amazonaws.com", 
-    port = 3306, 
-    user = "test1admin", 
-    passwd = "test1admin"
-)
+db = SqliteDatabase('P5.db', pragmas={'foreign_keys': 1})
+# db = MySQLDatabase(
+#     database = "test1db", 
+#     host = "test1db.cocusif4zjcb.us-east-1.rds.amazonaws.com", 
+#     port = 3306, 
+#     user = "test1admin", 
+#     passwd = "test1admin"
+# )
 
 class BaseModel(Model):
     class Meta:
@@ -57,12 +57,11 @@ class Subscribe(BaseModel):
 
 
 
-class AppServer(BaseModel):
+class Server(BaseModel):
     ip = CharField()
-    instance_id = CharField()
 
 class ServerAllocation(BaseModel):
-    server = ForeignKeyField(AppServer, on_delete='CASCADE')
+    server = ForeignKeyField(Server, on_delete='CASCADE')
     user = ForeignKeyField(User, on_delete='CASCADE')
 
 
@@ -70,4 +69,4 @@ class ServerAllocation(BaseModel):
 
 if __name__ == '__main__':
     db.connect()
-    db.create_tables([User, Invitation, Friend, Post, Follow, Token, Group, Subscribe, AppServer, ServerAllocation])
+    db.create_tables([User, Invitation, Friend, Post, Follow, Token, Group, Subscribe, Server, ServerAllocation])
