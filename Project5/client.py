@@ -29,6 +29,12 @@ class Client(object):
                 raise Exception('Port value should between 1~65535')
             self.cookie = {}
             self.subscribed = {}
+            
+            self.login_ip = ip
+            self.login_port = port
+            self.app_ip = {}
+            self.app_port = {}
+
         except Exception as e:
             print(e, file=sys.stderr)
             sys.exit(1)
@@ -42,14 +48,54 @@ class Client(object):
             if cmd != os.linesep:
                 try:
                     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                        s.connect((self.ip, self.port))
+                       
                         cmd = self.__attach_token(cmd)
+                        self.__connect_destination(cmd)
+
+                        s.connect((self.ip, self.port))    # should modify this
+                        
                         s.send(cmd.encode())
                         resp = s.recv(4096).decode()
                         self.__show_result(json.loads(resp), cmd, conn)
                 except Exception as e:
                     print("error")
                     print(e, file=sys.stderr)
+
+
+
+    def __connect_destination(self, cmd=None):
+        if cmd:
+            command = cmd.split()
+            if len(command) > 1:
+                if command[0] == 'logout' or command[0] == 'delete' or command[0] == 'login' or command[0] == 'register':
+                    self.ip = self.login_ip
+                    self.login_port = self.login_port
+                else:
+                    user = command[1]  # it's a token
+                    if self.app_ip[user] and self.app_port[user]:
+                        self.ip = self.app_ip[user]
+                        self.port = self.app_port[user]
+                    
+                    # deaal with unknown command or no allocated app server
+                    else:
+                        self.ip = self.login_ip
+                        self.port = self.login_port
+
+        else:
+            return cmd
+
+    def __attach_token(self, cmd=None):
+        if cmd:
+            command = cmd.split()
+            if len(command) > 1:
+                if command[0] != 'register' and command[0] != 'login':
+                    if command[1] in self.cookie:
+                        command[1] = self.cookie[command[1]]
+                    else:
+                        command.pop(1)
+            return ' '.join(command)
+        else:
+            return cmd
 
     def __show_result(self, resp, cmd=None, conn=None):
         if 'message' in resp:
@@ -102,7 +148,6 @@ class Client(object):
                 self.cookie[user] = resp['token']
                 
                 ########### CONNECT to ACTIVEMQ server and SUBSCRIBE #############          
-
                 # Subscribe to the joined groups(topics)
                 if 'subscribed' in resp:
                     self.subscribed[user] = list()
@@ -115,10 +160,25 @@ class Client(object):
                 # Subscribe to personal channel(queue)
                 conn.subscribe(destination='/queue/'+user, id=user, ack='auto')      
 
+                ########### Save app server's ip address and port number ###############
+                if 'ip' in resp:
+                    app_server_ip = resp['ip']
+                    self.app_ip[user]   = app_server_ip
+                    self.app_port[user] = 2048
+
+                    # change connection destination to the app server
+                    # self.ip   = self.app_ip[user]
+                    # self.port = self.app_port[user]
+
+
+
+
+
+
+
             
             ########### SUBSCRIBE ############# 
             if 'gotta_subscribe' in resp:
-                
                 for owner,token in self.cookie.items():
                     if token ==  command[1]:            # command[1] is a token!!!
                         user = owner
@@ -126,7 +186,6 @@ class Client(object):
                 self.subscribed[user].append(topic)     
 
                 conn.subscribe(destination='/topic/'+topic, id=command[1]+topic, ack='auto')      # should modify id       
-
 
             ########### UNSUBSCRIBE when logout or delete_user############# 
             if (resp['status'] == 0) and ((command[0] == 'logout') | (command[0] == 'delete')):
@@ -140,20 +199,14 @@ class Client(object):
                     conn.unsubscribe(unsub)               # should modify id  
                 conn.unsubscribe(user)                    # should modify id  
                 self.subscribed[user].clear()
-            
 
-    def __attach_token(self, cmd=None):
-        if cmd:
-            command = cmd.split()
-            if len(command) > 1:
-                if command[0] != 'register' and command[0] != 'login':
-                    if command[1] in self.cookie:
-                        command[1] = self.cookie[command[1]]
-                    else:
-                        command.pop(1)
-            return ' '.join(command)
-        else:
-            return cmd
+                ########### Discard app server's ip address and port number ###############
+                self.app_ip[user]   = None
+                self.app_port[user] = None
+
+
+
+
 
 
 def launch_client(ip, port):

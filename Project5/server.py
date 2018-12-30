@@ -98,14 +98,8 @@ class DBControl(object):
 
             # STEP2: if YES, then return that app_server's ip and port
             if available_server:
-                print(available_server.server.ip)
                 target_ip = available_server.server.ip                
                 print(target_ip)
-                
-                # target_ip = (AppServer
-                # .select(AppServer.ip)
-                # .where(AppServer == available_server)
-                # )
                 
                 ServerAllocation.create(server=available_server, user=t.owner)
 
@@ -137,11 +131,14 @@ class DBControl(object):
                     created_instance_id = instance['InstanceId']
                 print(created_instance_id)
 
-                time.sleep(5)
 
-                # Connect to EC2
-                ec2 = boto3.client('ec2')
-                target_ip = ec2.describe_instances(InstanceIds=[created_instance_id])['Reservations'][0]['Instances'][0]['PublicIpAddress']
+                # Connect to EC2 and wait
+                ec2_resouces = boto3.resource('ec2')
+                NewServer = ec2_resouces.Instance(id=created_instance_id)
+                NewServer.wait_until_running()
+
+
+                target_ip = client.describe_instances(InstanceIds=[created_instance_id])['Reservations'][0]['Instances'][0]['PublicIpAddress']
                 print(target_ip)
 
 
@@ -150,6 +147,7 @@ class DBControl(object):
                 NewServer = AppServer.create(ip=target_ip, instance_id=created_instance_id)
                 ServerAllocation.create(server=NewServer, user=t.owner)
 
+                # use resources version => Done
 
 
 
