@@ -51,7 +51,46 @@ class DBControl(object):
                 'status': 1,
                 'message': 'Usage: delete <user>'
             }
-        token.owner.delete_instance()
+
+        # DO SOME STUFF HERE!!!
+        # DO THE SIMILAR THING IN DELETE COMMAND!!!
+        # STEP1: Delete rows in ServerAllocation first
+        target_conn = ServerAllocation.get_or_none(ServerAllocation.user == token.owner)
+        ServerAllocation.delete().where(ServerAllocation.user == token.owner).execute()
+        
+        
+        # STEP2 : check whether there are somebody still using this app_server
+        still_using_app = ServerAllocation.get_or_none(ServerAllocation.server == target_conn.server)
+        # print(still_using_app)
+        
+        # Also TERMINATE app server if needed!
+        # STEP3: if Nobody is using this app server, then terminate it
+        if still_using_app == None:
+            # (1) delete the row in AppServer table
+            # (2) delete EC2 instance, (sleep) 
+            
+            target_server = AppServer.get_or_none(AppServer.id == target_conn.server)  #App server that is going to be shut down
+            # print(target_server)
+            
+            if target_server:
+                # (1) Delete the row in AppServer table
+                target_instance_id = target_server.instance_id 
+                target_server.delete_instance()
+                
+                # (2) delete EC2 instance, (sleep) 
+                client = boto3.client('ec2')
+                response = client.terminate_instances(InstanceIds=[target_instance_id])
+                print(response)
+                print("########Shutting down App server########")
+
+                # EC2 need some time to shut down target instance 
+                # But it is no need to sleep in our "server.py" source code,
+                # because we already delete that app server from AppServer table. 
+                # Therefore, there won't be any misconnection to this server in following commands, even though the termination might be done.
+
+        # STEP4 : DELETE user
+        token.owner.delete_instance()        
+        
         return {
             'status': 0,
             'message': 'Success!'
@@ -101,7 +140,7 @@ class DBControl(object):
                 target_ip = available_server.server.ip                
                 print(target_ip)
                 
-                ServerAllocation.create(server=available_server, user=t.owner)
+                ServerAllocation.create(server=available_server.server, user=t.owner)
 
 
             # STEP3: if NO, then create a new EC2 instance, and return it's ip and port
@@ -172,7 +211,50 @@ class DBControl(object):
                 'status': 1,
                 'message': 'Usage: logout <user>'
             }
+
+
+
+        # DO THE SIMILAR THING IN DELETE COMMAND!!!
+        # STEP1: Delete rows in ServerAllocation first
+        target_conn = ServerAllocation.get_or_none(ServerAllocation.user == token.owner)
+        ServerAllocation.delete().where(ServerAllocation.user == token.owner).execute()
+        
+
+        # STEP2: Delete token
         token.delete_instance()
+        
+        # STEP3 : check whether there are somebody still using this app_server
+        still_using_app = ServerAllocation.get_or_none(ServerAllocation.server == target_conn.server)
+
+        # Also TERMINATE app server if needed!
+        # STEP4: if Nobody is using this app server, then terminate it
+        if still_using_app == None:
+            # (1) delete the row in AppServer table
+            # (2) delete EC2 instance, (sleep) 
+            
+            # target_instance_id = 'i-0a5e8135a0a2b4fd0'
+            # target_instance_id = AppServer.select(AppServer.instance_id).where(AppServer.id == target_server.id)
+
+            target_server = AppServer.get_or_none(AppServer.id == target_conn.server)  #App server that is going to be shut down
+
+            if target_server:
+                # (1) Delete the row in AppServer table
+                target_instance_id = target_server.instance_id 
+                target_server.delete_instance()
+                
+
+                # (2) delete EC2 instance, (sleep) 
+                client = boto3.client('ec2')
+                response = client.terminate_instances(InstanceIds=[target_instance_id])
+                print(response)
+                print("########Shutting down App server########")
+
+                # EC2 need some time to shut down target instance 
+                # But it is no need to sleep in our "server.py" source code,
+                # because we already delete that app server from AppServer table. 
+                # Therefore, there won't be any misconnection to this server in following commands, even though the termination might be done.
+
+
         return {
             'status': 0,
             'message': 'Bye!'
@@ -523,7 +605,10 @@ class Server(object):
         self.sock.bind((self.ip, self.port))
         self.sock.listen(100)
         socket.setdefaulttimeout(0.1)
-        # Token.delete().execute()
+        Token.delete().execute()
+        AppServer.delete().execute()
+        ServerAllocation.delete().execute()
+                
         while True:
             try:
                 conn, addr = self.sock.accept()
