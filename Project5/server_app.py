@@ -258,7 +258,8 @@ class DBControl(object):
                 if online:
 
                     # connect to ActiveMQ
-                    conn = stomp.Connection([('localhost', 61613)])
+                    ActiveMQ_ip = '54.221.15.231'
+                    conn = stomp.Connection([(ActiveMQ_ip, 61613)])
                     conn.start()
                     conn.connect('admin', 'admin', wait=True)
 
@@ -398,7 +399,8 @@ class DBControl(object):
 
             if inside_group:
                 # connect to ActiveMQ
-                conn = stomp.Connection([('localhost', 61613)])
+                ActiveMQ_ip = '54.221.15.231'
+                conn = stomp.Connection([(ActiveMQ_ip, 61613)])
                 conn.start()
                 conn.connect('admin', 'admin', wait=True)
 

@@ -12,7 +12,7 @@ class MyListener(stomp.ConnectionListener):
         print(message)
 
 def ConnectActiveMQ():
-    conn = stomp.Connection([('localhost', 61613)])
+    conn = stomp.Connection([('54.221.15.231', 61613)])  #modify 'localhost' to '54.221.15.231' ????
     conn.set_listener('', MyListener())
     conn.start()
     conn.connect('admin', 'admin', wait=True)
@@ -59,6 +59,7 @@ class Client(object):
                         self.__show_result(json.loads(resp), cmd, conn)
                 except Exception as e:
                     print("error")
+                    print(e)
                     print(e, file=sys.stderr)
 
 
@@ -67,16 +68,19 @@ class Client(object):
         if cmd:
             command = cmd.split()
             if len(command) > 1:
+                
                 if command[0] == 'logout' or command[0] == 'delete' or command[0] == 'login' or command[0] == 'register':
                     self.ip = self.login_ip
                     self.login_port = self.login_port
                 else:
-                    user = command[1]  # it's a token
+                    for owner,token in self.cookie.items():
+                        if token ==  command[1]:            # command[1] is a token!!!
+                            user = owner                    # user is a username        
+
                     if self.app_ip[user] and self.app_port[user]:
                         self.ip = self.app_ip[user]
                         self.port = self.app_port[user]
-                    
-                    # deaal with unknown command or no allocated app server
+                    # deal with unknown command or no allocated app server
                     else:
                         self.ip = self.login_ip
                         self.port = self.login_port
@@ -135,11 +139,8 @@ class Client(object):
                     print(j)
             else:
                 print('No groups')
-        
-        if 'ip' in resp:
-            print(resp['ip'])
 
-        print(resp)
+        # print(resp)
 
         if cmd:
             command = cmd.split()
@@ -165,16 +166,6 @@ class Client(object):
                     app_server_ip = resp['ip']
                     self.app_ip[user]   = app_server_ip
                     self.app_port[user] = 2048
-
-                    # change connection destination to the app server
-                    # self.ip   = self.app_ip[user]
-                    # self.port = self.app_port[user]
-
-
-
-
-
-
 
             
             ########### SUBSCRIBE ############# 
@@ -203,9 +194,6 @@ class Client(object):
                 ########### Discard app server's ip address and port number ###############
                 self.app_ip[user]   = None
                 self.app_port[user] = None
-
-
-
 
 
 

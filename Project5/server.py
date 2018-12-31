@@ -156,8 +156,11 @@ class DBControl(object):
                 python3.6 ./hello_world.py > /home/ubuntu/python.txt
                 python3.6 ./server_app.py'''
 
+                print("######## Creating App server, please wait. ########")
+
                 resp = client.run_instances(
-                    ImageId='ami-0b95686768d9b1890',      # my AMI(with trying sys.path.append to import)
+                    ImageId='ami-06049e643eff006ec',        # my AMI(with coonection to ActiveMQ on EC2)
+                    # ImageId='ami-0b95686768d9b1890',      # my AMI(with trying sys.path.append to import)
                     InstanceType='t2.micro',
                     MinCount=1,
                     MaxCount=1,
@@ -175,11 +178,10 @@ class DBControl(object):
                 ec2_resouces = boto3.resource('ec2')
                 NewServer = ec2_resouces.Instance(id=created_instance_id)
                 NewServer.wait_until_running()
-
+                print("######## App server is launched. ########")
 
                 target_ip = client.describe_instances(InstanceIds=[created_instance_id])['Reservations'][0]['Instances'][0]['PublicIpAddress']
                 print(target_ip)
-
 
 
                 # create a row in Server table and ServerAllocation table
@@ -187,9 +189,6 @@ class DBControl(object):
                 ServerAllocation.create(server=NewServer, user=t.owner)
 
                 # use resources version => Done
-
-
-
 
             return {
                 'status': 0,
@@ -419,7 +418,8 @@ class DBControl(object):
                 if online:
 
                     # connect to ActiveMQ
-                    conn = stomp.Connection([('localhost', 61613)])
+                    ActiveMQ_ip = '54.221.15.231'
+                    conn = stomp.Connection([(ActiveMQ_ip, 61613)])
                     conn.start()
                     conn.connect('admin', 'admin', wait=True)
 
@@ -559,7 +559,8 @@ class DBControl(object):
 
             if inside_group:
                 # connect to ActiveMQ
-                conn = stomp.Connection([('localhost', 61613)])
+                ActiveMQ_ip = '54.221.15.231'
+                conn = stomp.Connection([(ActiveMQ_ip, 61613)])
                 conn.start()
                 conn.connect('admin', 'admin', wait=True)
 
