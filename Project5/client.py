@@ -46,21 +46,30 @@ class Client(object):
             if cmd.rstrip() == 'exit':
                 return
             if cmd != os.linesep:
-                try:
-                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                       
-                        cmd = self.__attach_token(cmd)
-                        self.__connect_destination(cmd)
-
-                        s.connect((self.ip, self.port))    # should modify this
+                cmd = self.__attach_token(cmd)
+                self.__connect_destination(cmd)
+                
+                while True:   # try to connect to the server until successful connection
+                    try:
+                        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                         
-                        s.send(cmd.encode())
-                        resp = s.recv(4096).decode()
-                        self.__show_result(json.loads(resp), cmd, conn)
-                except Exception as e:
-                    print("error")
-                    print(e)
-                    print(e, file=sys.stderr)
+                            connect_server = s.connect_ex((self.ip, self.port)) # try to connect to the server  
+                            
+                            if connect_server == 0:  # successful connection
+                                s.send(cmd.encode())
+                                resp = s.recv(4096).decode()
+                                self.__show_result(json.loads(resp), cmd, conn)
+                                break
+                        
+                            else:   
+                                # connection might be failed because the EC2 instance(i.e. app server) hasn't be created yet (still pending)
+                                print("Launching new application server, please wait.")
+                                time.sleep(15)
+                   
+                    except Exception as e:
+                        print("error")
+                        print(e, file=sys.stderr)
+                        break
 
 
 
@@ -168,7 +177,7 @@ class Client(object):
                     self.app_port[user] = 2048
 
             
-            ########### SUBSCRIBE ############# 
+            ########### SUBSCRIBE #############  
             if 'gotta_subscribe' in resp:
                 for owner,token in self.cookie.items():
                     if token ==  command[1]:            # command[1] is a token!!!
