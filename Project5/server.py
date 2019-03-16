@@ -132,7 +132,6 @@ class DBControl(object):
             except ServerAllocation.DoesNotExist:
                 available_server = None
 
-            # maybe try get_or_none????
 
 
             # STEP2: if YES, then return that app_server's ip and port
